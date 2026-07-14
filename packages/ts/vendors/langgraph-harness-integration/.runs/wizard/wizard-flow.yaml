@@ -1,0 +1,515 @@
+version: 100
+name: "wizard-flow"
+description: "Ingest rows, pick a remediation subset, dedup repo URLs, clone each repo, fingerprint each clone, and LLM-scan each repo's setup/install/run/test under mock."
+runtime:
+  recursion_limit: 40
+  checkpointer: "none"
+  mock: false
+state:
+  ingest_source:
+    type: "string"
+    default: "local_csv"
+  ingest_ref:
+    type: "string"
+    default: "/Users/Shared/multistageharness/INTERNAL-repo-remediation/harness-repo-package-remediation/fixtures/remediation-testcases-B.csv"
+  service_health:
+    type: "object"
+    default:
+      ok: true
+      services: []
+  dataset:
+    type: "object"
+    default:
+      original_headers: []
+      selected_headers: []
+      rows: []
+      repo_column: ""
+      repos: []
+      clone_results: []
+  rows:
+    type: "array"
+    default: []
+  repos:
+    type: "array"
+    default: []
+  repos_item:
+    type: "object"
+    default: {}
+  repos_index:
+    type: "number"
+    default: 0
+  clone_results:
+    type: "array"
+    default: []
+    reducer: "concat"
+  fingerprints:
+    type: "array"
+    default: []
+  integrated:
+    type: "array"
+    default: []
+  remediations:
+    type: "array"
+    default: []
+  snapshots:
+    type: "array"
+    default: []
+  registry_preflight:
+    type: "object"
+    default: {}
+  installs:
+    type: "array"
+    default: []
+  install_verifications:
+    type: "array"
+    default: []
+  builds:
+    type: "array"
+    default: []
+  build_snapshots:
+    type: "array"
+    default: []
+  fingerprints_item:
+    type: "object"
+    default: {}
+  fingerprints_index:
+    type: "number"
+    default: 0
+  dependency_graphs:
+    type: "array"
+    default: []
+    reducer: "concat"
+  report:
+    type: "object"
+    default: {}
+  fingerprints_report:
+    type: "object"
+    default: {}
+  integrated_report:
+    type: "object"
+    default: {}
+  dependency_graph_report:
+    type: "object"
+    default: {}
+  plans:
+    type: "array"
+    default: []
+  plans_ruled:
+    type: "array"
+    default: []
+  changelogs:
+    type: "array"
+    default: []
+  optimized_prompts:
+    type: "array"
+    default: []
+  tests:
+    type: "array"
+    default: []
+  validations:
+    type: "array"
+    default: []
+  remediation_summary:
+    type: "object"
+    default: {}
+  report_html:
+    type: "object"
+    default: {}
+  final_applied_changes:
+    type: "object"
+    default: {}
+  errors_summary:
+    type: "object"
+    default: {}
+entry: "health"
+nodes:
+- id: "health"
+  uses: "commands.serviceHealth"
+  with:
+    into: "service_health"
+  reads: []
+  writes: ["service_health"]
+- id: "ingest"
+  uses: "nodes.subgraph"
+  with:
+    config: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/flows/ingest.yaml"
+    map_in:
+      ingest_source: "ingest_source"
+      ingest_ref: "ingest_ref"
+    map_out:
+      rows: "rows"
+  reads: ["ingest_source", "ingest_ref"]
+  writes: ["rows"]
+- id: "dataset_init"
+  uses: "commands.datasetInit"
+  with:
+    rows_from: "rows"
+    into: "dataset"
+  reads: ["rows"]
+  writes: ["dataset"]
+- id: "select_headers"
+  uses: "commands.selectHeaders"
+  with:
+    dataset_from: "dataset"
+    columns: ["repo_url", "package", "recommended_version"]
+    into: "dataset"
+  reads: ["dataset"]
+  writes: ["dataset"]
+- id: "collect_repos"
+  uses: "commands.collectRepos"
+  with:
+    dataset_from: "dataset"
+    column: "repo_url"
+    into: "dataset"
+    repos_into: "repos"
+  reads: ["dataset"]
+  writes: ["dataset", "repos"]
+- id: "fan"
+  uses: "nodes.fanout"
+  with:
+    over: "repos"
+  reads: ["repos"]
+- id: "clone_repo"
+  uses: "commands.gitCloneClassified"
+  with:
+    url_from: "repos_item"
+    workspace: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/repos"
+    on_exist: "skip"
+    max_attempts: 3
+    into: "clone_results"
+  reads: ["repos_item"]
+  writes: ["clone_results"]
+- id: "fingerprint"
+  uses: "commands.repoFingerprint"
+  with:
+    clones_from: "clone_results"
+    into: "fingerprints"
+  reads: ["clone_results"]
+  writes: ["fingerprints"]
+- id: "fingerprint_report"
+  uses: "commands.renderReport"
+  with:
+    template_uses: "template.jsonReport"
+    template_with:
+      pick: ["fingerprints"]
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    filename: "fingerprints.json"
+    format: "json"
+    into: "fingerprints_report"
+  reads: ["fingerprints"]
+  writes: ["fingerprints_report"]
+- id: "resolve_datasource"
+  uses: "commands.resolveDatasource"
+  with:
+    dataset_from: "dataset"
+    clones_from: "clone_results"
+    into: "dataset"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+  reads: ["dataset", "clone_results"]
+  writes: ["dataset"]
+- id: "integrate"
+  uses: "skills.detectSetup"
+  with:
+    fingerprints_from: "fingerprints"
+    into: "integrated"
+  reads: ["fingerprints"]
+  writes: ["integrated"]
+- id: "integrate_report"
+  uses: "commands.renderReport"
+  with:
+    template_uses: "template.jsonReport"
+    template_with:
+      pick: ["integrated"]
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    filename: "integrated.json"
+    format: "json"
+    into: "integrated_report"
+  reads: ["integrated"]
+  writes: ["integrated_report"]
+- id: "plan"
+  uses: "commands.remediationPlan"
+  with:
+    fingerprints_from: "fingerprints"
+    dataset_from: "dataset"
+    into: "plans"
+  reads: ["fingerprints", "dataset"]
+  writes: ["plans"]
+- id: "apply_rules"
+  uses: "commands.applyPackageRules"
+  with:
+    plans_from: "plans"
+    fingerprints_from: "fingerprints"
+    policy_path: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/policy/remediation-policy.yaml"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+    into: "plans_ruled"
+  reads: ["plans", "fingerprints"]
+  writes: ["plans_ruled"]
+- id: "optimize"
+  uses: "skills.optimizePrompt"
+  with:
+    plans_from: "plans"
+    into: "optimized_prompts"
+  reads: ["plans"]
+  writes: ["optimized_prompts"]
+- id: "remediate"
+  uses: "commands.repoRemediate"
+  with:
+    fingerprints_from: "fingerprints"
+    dataset_from: "dataset"
+    policy_path: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/policy/remediation-policy.yaml"
+    plans_from: "plans_ruled"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+    into: "remediations"
+  reads: ["fingerprints", "dataset", "plans_ruled"]
+  writes: ["remediations"]
+- id: "snapshot"
+  uses: "commands.repoSnapshot"
+  with:
+    clones_from: "clone_results"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/snapshots"
+    name_suffix: "repo.json"
+    namespace: "initial"
+    into: "snapshots"
+  reads: ["clone_results"]
+  writes: ["snapshots"]
+- id: "preflight"
+  uses: "commands.registryPreflight"
+  with:
+    integrated_from: "integrated"
+    into: "registry_preflight"
+  reads: ["integrated"]
+  writes: ["registry_preflight"]
+- id: "install"
+  uses: "commands.installRun"
+  with:
+    integrated_from: "integrated"
+    clones_from: "clone_results"
+    fingerprints_from: "fingerprints"
+    preflight_from: "registry_preflight"
+    playbooks_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/playbooks/ecosystem-installation"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/installs"
+    into: "installs"
+    concurrency: 4
+    fail_fast_after: 3
+    fetch_retries: 1
+    fetch_retry_max_ms: 5000
+  reads: ["integrated", "clone_results", "fingerprints", "registry_preflight"]
+  writes: ["installs"]
+- id: "install_verify"
+  uses: "commands.installVerify"
+  with:
+    installs_from: "installs"
+    clones_from: "clone_results"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/installs"
+    into: "install_verifications"
+  reads: ["installs", "clone_results"]
+  writes: ["install_verifications"]
+- id: "depgraph_fan"
+  uses: "nodes.fanout"
+  with:
+    over: "fingerprints"
+  reads: ["fingerprints"]
+- id: "dependency_graph"
+  uses: "nodes.subgraph"
+  with:
+    config: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/flows/dependency-graph.yaml"
+    map_in:
+      fingerprint_item: "fingerprints_item"
+    map_out:
+      dependency_graphs: "dependency_graph_item"
+  reads: ["fingerprints_item"]
+  writes: ["dependency_graphs"]
+- id: "depgraph_report"
+  uses: "commands.renderReport"
+  with:
+    template_uses: "template.jsonReport"
+    template_with:
+      pick: ["dependency_graphs"]
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    filename: "dependency-graph.json"
+    format: "json"
+    into: "dependency_graph_report"
+  reads: ["dependency_graphs"]
+  writes: ["dependency_graph_report"]
+- id: "build"
+  uses: "commands.buildRun"
+  with:
+    integrated_from: "integrated"
+    clones_from: "clone_results"
+    fingerprints_from: "fingerprints"
+    preflight_from: "registry_preflight"
+    playbooks_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/playbooks/ecosystem-build"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/builds"
+    into: "builds"
+  reads: ["integrated", "clone_results", "fingerprints", "registry_preflight"]
+  writes: ["builds"]
+- id: "build_snapshot"
+  uses: "commands.repoSnapshot"
+  with:
+    clones_from: "clone_results"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/snapshots"
+    name_suffix: "repo.json"
+    namespace: "build"
+    into: "build_snapshots"
+  reads: ["clone_results"]
+  writes: ["build_snapshots"]
+- id: "run_test"
+  uses: "commands.testRun"
+  with:
+    integrated_from: "integrated"
+    clones_from: "clone_results"
+    fingerprints_from: "fingerprints"
+    preflight_from: "registry_preflight"
+    playbooks_dir: "../../configs/playbooks/ecosystem-test"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/tests"
+    into: "tests"
+  reads: ["integrated", "clone_results", "fingerprints", "registry_preflight"]
+  writes: ["tests"]
+- id: "validate"
+  uses: "commands.remediationValidate"
+  with:
+    remediations_from: "remediations"
+    install_verifications_from: "install_verifications"
+    builds_from: "builds"
+    tests_from: "tests"
+    plans_from: "plans"
+    dataset_from: "dataset"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+    into: "validations"
+  reads: ["remediations", "install_verifications", "builds", "tests", "plans", "dataset"]
+  writes: ["validations"]
+- id: "changelog"
+  uses: "commands.fetchChangelogs"
+  with:
+    remediations_from: "remediations"
+    into: "changelogs"
+  reads: ["remediations"]
+  writes: ["changelogs"]
+- id: "remediation_report"
+  uses: "commands.remediationReport"
+  with:
+    plans_from: "plans"
+    optimized_prompts_from: "optimized_prompts"
+    remediations_from: "remediations"
+    validations_from: "validations"
+    tests_from: "tests"
+    builds_from: "builds"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness"
+    into: "remediation_summary"
+  reads: ["plans", "optimized_prompts", "remediations", "validations", "tests", "builds"]
+  writes: ["remediation_summary"]
+- id: "render"
+  uses: "commands.renderReport"
+  with:
+    template_uses: "template.jsonReport"
+    template_with:
+      pick: ["dataset", "clone_results", "plans", "optimized_prompts", "remediations", "snapshots", "installs", "install_verifications", "dependency_graphs", "builds", "tests", "build_snapshots", "validations", "changelogs"]
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    filename: "harness-ingest-classify.json"
+    format: "json"
+    into: "report"
+  reads: ["dataset", "clone_results", "plans", "optimized_prompts", "remediations", "snapshots", "installs", "install_verifications", "dependency_graphs", "builds", "tests", "build_snapshots", "validations", "changelogs"]
+  writes: ["report"]
+- id: "html_report"
+  uses: "commands.renderHtmlReport"
+  with:
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    filename: "repo-remediation.html"
+    into: "report_html"
+  reads: ["service_health", "dataset", "clone_results", "plans", "optimized_prompts", "remediations", "validations", "installs", "install_verifications", "builds", "tests", "dependency_graphs", "snapshots", "build_snapshots"]
+  writes: ["report_html"]
+- id: "export_changes"
+  uses: "commands.exportAppliedChanges"
+  with:
+    clones_from: "clone_results"
+    remediations_from: "remediations"
+    validations_from: "validations"
+    changelogs_from: "changelogs"
+    fingerprints_from: "fingerprints"
+    plans_from: "plans"
+    into: "final_applied_changes"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/final_applied_changes"
+  reads: ["clone_results", "remediations", "validations", "changelogs", "fingerprints", "plans"]
+  writes: ["final_applied_changes"]
+- id: "errors"
+  uses: "commands.errorsConsolidate"
+  with:
+    filename: "errors.logs"
+    into: "errors_summary"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+  reads: ["service_health", "clone_results", "installs", "install_verifications", "builds", "tests", "validations", "remediations"]
+  writes: ["errors_summary"]
+edges:
+- from: "health"
+  to: "ingest"
+- from: "ingest"
+  to: "dataset_init"
+- from: "dataset_init"
+  switch:
+    on: "ingest_source"
+    cases:
+      local_repo: "collect_repos"
+      remote_repo: "collect_repos"
+    default: "select_headers"
+- from: "select_headers"
+  to: "collect_repos"
+- from: "collect_repos"
+  to: "fan"
+- from: "fan"
+  fanout:
+    over: "repos"
+    to: "clone_repo"
+  then: "fingerprint"
+- from: "fingerprint"
+  to: "fingerprint_report"
+- from: "fingerprint_report"
+  to: "resolve_datasource"
+- from: "resolve_datasource"
+  to: "integrate"
+- from: "integrate"
+  to: "integrate_report"
+- from: "integrate_report"
+  to: "plan"
+- from: "plan"
+  to: "apply_rules"
+- from: "apply_rules"
+  to: "optimize"
+- from: "optimize"
+  to: "remediate"
+- from: "remediate"
+  to: "snapshot"
+- from: "snapshot"
+  to: "preflight"
+- from: "preflight"
+  to: "install"
+- from: "install"
+  to: "install_verify"
+- from: "install_verify"
+  to: "depgraph_fan"
+- from: "depgraph_fan"
+  fanout:
+    over: "fingerprints"
+    to: "dependency_graph"
+  then: "depgraph_report"
+- from: "depgraph_report"
+  to: "build"
+- from: "build"
+  to: "build_snapshot"
+- from: "build_snapshot"
+  to: "run_test"
+- from: "run_test"
+  to: "validate"
+- from: "validate"
+  to: "changelog"
+- from: "changelog"
+  to: "remediation_report"
+- from: "remediation_report"
+  to: "render"
+- from: "render"
+  to: "html_report"
+- from: "html_report"
+  to: "export_changes"
+- from: "export_changes"
+  to: "errors"
+- from: "errors"
+  to: "END"

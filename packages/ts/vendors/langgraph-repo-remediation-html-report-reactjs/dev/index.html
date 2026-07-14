@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repository remediation report — Dev</title>
+    <!--
+      Dev chrome ONLY — the session picker and the "no report found" note.
+
+      Everything the report itself looks like comes from `src/report/report.css`, which `Report.tsx`
+      imports and which is the only stylesheet the emitted page carries. Nothing here may style the
+      report: no element selectors, no resets, no `body` rules, and above all no Tailwind (its
+      preflight restyles headings, buttons, and borders, which is precisely how this dev server and
+      the shipped page drifted apart). Every rule below is namespaced under `.devbar` / `.devnote`.
+    -->
+    <style>
+      .devbar {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 6px;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 6px 24px rgb(15 23 42 / 18%);
+        border: 1px solid #e2e8f0;
+        font: 12px/1.4 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        max-width: 22rem;
+      }
+      .devbar-title {
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #94a3b8;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .devbar-btn {
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        padding: 4px 6px;
+        text-align: left;
+        cursor: pointer;
+        color: #334155;
+        font: inherit;
+      }
+      .devbar-btn:hover {
+        background: #f1f5f9;
+      }
+      .devbar-btn.is-active {
+        background: #4f46e5;
+        color: #fff;
+      }
+      /* Declared before the `.is-active` descendant rule below: the compound selector has higher
+         specificity, and biome's `noDescendingSpecificity` flags the reverse order. */
+      .devbar-dim {
+        color: #94a3b8;
+      }
+      .devbar-btn.is-active .devbar-dim {
+        color: #c7d2fe;
+      }
+      .devbar-sep {
+        margin-top: 4px;
+        padding-top: 5px;
+        border-top: 1px solid #f1f5f9;
+      }
+      .devbar-link {
+        margin-top: 2px;
+        padding: 6px 6px 2px;
+        border-top: 1px solid #f1f5f9;
+        color: #4f46e5;
+        text-decoration: none;
+      }
+      .devbar-link:hover {
+        text-decoration: underline;
+      }
+      .devnote {
+        max-width: 44rem;
+        margin: 4rem auto;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #fff;
+        font: 14px/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        color: #334155;
+      }
+      .devnote h1 {
+        margin: 0 0 0.75rem;
+        font-size: 1.1rem;
+        color: #0f172a;
+      }
+      .devnote pre {
+        overflow-x: auto;
+        padding: 0.75rem;
+        border-radius: 8px;
+        background: #0f172a;
+        color: #e2e8f0;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Exactly what the emitted page has: the report, alone. -->
+    <div id="root"></div>
+    <!-- Dev chrome lives outside #root so it cannot perturb the report's markup or layout. -->
+    <div id="devbar"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

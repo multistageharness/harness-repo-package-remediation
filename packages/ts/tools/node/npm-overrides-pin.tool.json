@@ -1,0 +1,12 @@
+{
+  "id": "npm-overrides-pin",
+  "ecosystem": "node",
+  "kind": "remediation",
+  "title": "npm transitive override pin",
+  "description": "Force a patched version of a transitively-pulled npm package by injecting an 'overrides' block in package.json (the override-transitive strategy).",
+  "capabilities": ["transitive-pin", "manifest-edit"],
+  "manifests": ["package.json"],
+  "argv_template": ["npm", "install"],
+  "produces": ["package.json", "package-lock.json"],
+  "safety": "declarative overrides block; keeps the parent dependency at its current version"
+}

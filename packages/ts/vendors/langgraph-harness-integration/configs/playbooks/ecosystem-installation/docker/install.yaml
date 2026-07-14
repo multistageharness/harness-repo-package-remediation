@@ -1,0 +1,6 @@
+# docker "playbook" — an EXPLICIT no-op with a stated reason (0026/D2 §5),
+# mirroring how this lane holds the placeholder stub in step 11 (0018 A1 §4).
+# "No playbook" and "a playbook that installs nothing" are different results.
+ecosystem: docker
+reason: "no install lane — container builds are infrastructure, not a dependency install"
+toolchains: {}

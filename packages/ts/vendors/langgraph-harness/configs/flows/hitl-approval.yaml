@@ -1,0 +1,81 @@
+# HITL archetype: draft a plan, interrupt for a human decision, loop through
+# bounded revisions until approved (or the bound forces publication). The
+# FILE checkpointer makes the thread durable across process restarts — the
+# enterprise upgrade over the corpus's in-memory-only HITL.
+# (idea-to-plan-refinement / interactive-codebase-planner lineage.)
+version: 100
+name: hitl-approval
+description: Draft-review-revise loop with a durable file-checkpointed interrupt thread.
+
+runtime:
+  recursion_limit: 50
+  checkpointer: file
+  checkpointer_params: { path: "../../.runs/hitl-threads.json" }
+  mock: ${MOCK:true}
+
+state:
+  idea:        { type: string, default: "A CLI that turns yaml flow configs into runnable graphs." }
+  plan:        { type: string, default: "" }
+  decision:    { type: object, default: {} }
+  route_token: { type: string, default: "" }
+  published:   { type: object, default: {} }
+
+entry: draft_plan
+
+nodes:
+  - id: draft_plan
+    uses: skills.generate
+    with:
+      system: "You write short, numbered working plans."
+      user: "Idea: {{idea}}"
+      input: { idea: idea }
+      out: plan
+    reads: [idea]
+    writes: [plan]
+
+  - id: ask_review
+    uses: nodes.interrupt
+    with:
+      message: "Approve this plan, or provide feedback to revise."
+      payload_channels: [plan]
+      into: decision
+    reads: [plan]
+    writes: [decision]
+
+  - id: eval_decision
+    uses: nodes.router
+    with:
+      rules:
+        - { when: "state.decision.approve == true", token: approve }
+      default: revise
+      out: route_token
+    reads: [decision]
+    writes: [route_token]
+
+  - id: revise_plan
+    uses: skills.generate
+    with:
+      prompt: "../prompts/revise_plan.md"
+      input: { plan: plan, feedback: decision }
+      out: plan
+    reads: [plan, decision]
+    writes: [plan]
+
+  - id: publish
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [plan, route_token] }
+      out_dir: "../../.runs/out"
+      filename: "approved-plan.json"
+      format: json
+      into: published
+    reads: [plan]
+    writes: [published]
+
+edges:
+  - { from: draft_plan, to: ask_review }
+  - { from: ask_review, to: eval_decision }
+  - { from: eval_decision, switch: { on: route_token, cases: { approve: publish, revise: revise_plan }, default: revise_plan } }
+  - loop: { from: revise_plan, body_from: ask_review, max: 3, on_max: publish }
+  - { from: publish, to: END }

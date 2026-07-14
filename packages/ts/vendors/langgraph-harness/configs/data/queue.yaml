@@ -1,0 +1,8 @@
+# work-queue fixture consumed by flows/queue-worker.yaml (not a flow config)
+items:
+  - id: alpha
+    task: "summarize the architecture doc"
+  - id: beta
+    task: "check the topology archetype list"
+  - id: gamma
+    task: "confirm operations runbook coverage"

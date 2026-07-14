@@ -1,0 +1,14 @@
+{
+  "id": "pip-find-next-version",
+  "ecosystem": "python",
+  "packageManager": "pip",
+  "kind": "version-discovery",
+  "versioning": "pep440",
+  "title": "pip next-available version finder",
+  "description": "List the versions PyPI advertises for a package (pypi.org JSON API), rank candidates above the current version by PEP 440-style dotted ordering, and dry-run pip installs to find the next version that actually resolves. Honors a locally configured index (PIP_INDEX_URL) — fails fast when it is down, never reroutes.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["requirements.txt"],
+  "argv_template": ["pip", "install", "{{package}}=={{version}}", "--dry-run"],
+  "produces": ["installation_report.json"],
+  "safety": "dry-run resolve only — no site-packages mutation; mock runs are synthetic — zero network, zero subprocess"
+}

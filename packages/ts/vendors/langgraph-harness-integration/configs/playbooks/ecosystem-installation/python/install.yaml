@@ -1,0 +1,52 @@
+# python ecosystem installation playbook (0026/D2 + A4). The repo's own
+# dependencies land in a PER-LOCATION `.venv` inside the clone, provisioned
+# here — never the shared session venv (superseded by 0026/A4) and never the
+# step-11 tooling venv (`.venv-deptry`, which holds deptry/pipdeptree only).
+# Steps run with cwd at the install location; `.venv` is location-relative.
+# A pip lane over a repo without requirements.txt exits non-zero and is
+# RECORDED (allowNonZero) — degrade, never guess.
+ecosystem: python
+toolchains:
+  pip: &pip_steps
+    - tool: venv-create
+      argv: ["python3", "-m", "venv", ".venv"]
+      guard: python3
+      artifact: venv-create.log
+      allowNonZero: true
+      fallback:
+        tool: venv-create
+        argv: ["python", "-m", "venv", ".venv"]
+        guard: python
+        artifact: venv-create.log
+        allowNonZero: true
+    # 0034/A2: a transitive-pin remediation writes `constraints.txt`; pip only
+    # honors it when passed `-c constraints.txt`, so the primary consumes it.
+    # The `requires_file` gate mirrors npm-ci→npm-install: when constraints.txt
+    # is ABSENT the primary is bypassed (recorded skip) and selection degrades
+    # to the fallback (`-r requirements.txt` alone) — lanes without a constraint
+    # are byte-unchanged.
+    - tool: pip-install
+      argv: [".venv/bin/pip", "install", "-r", "requirements.txt", "-c", "constraints.txt"]
+      guard: ".venv/bin/pip"
+      requires_file: "constraints.txt"
+      artifact: pip-install.log
+      allowNonZero: true
+      fallback:
+        tool: pip-install
+        argv: [".venv/bin/pip", "install", "-r", "requirements.txt"]
+        guard: ".venv/bin/pip"
+        artifact: pip-install.log
+        allowNonZero: true
+  poetry:
+    - tool: poetry-install
+      argv: ["poetry", "install", "--no-interaction"]
+      guard: poetry
+      artifact: poetry-install.log
+      allowNonZero: true
+  uv:
+    - tool: uv-sync
+      argv: ["uv", "sync"]
+      guard: uv
+      artifact: uv-sync.log
+      allowNonZero: true
+  default: *pip_steps

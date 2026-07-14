@@ -1,0 +1,58 @@
+# QUEUE archetype: seed a work queue from a data file, pop-process-loop
+# until the queue drains (the custom commands.popQueue pattern proves the
+# project-mapping extension chain). (cross-repo-deep-analysis lineage.)
+version: 100
+name: queue-worker
+description: Pop a seeded work queue item by item until empty, summarizing each task.
+
+runtime:
+  recursion_limit: 100
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  work_queue:   { type: array, default: [] }
+  current_item: { type: object, default: {} }
+  processed:    { type: array, default: [], reducer: concat }
+  drained:      { type: object, default: {} }
+
+entry: seed_queue
+
+nodes:
+  - id: seed_queue
+    uses: commands.readJson
+    with: { path: "../data/queue.yaml", pick: items, into: work_queue }
+    writes: [work_queue]
+
+  - id: pop_next
+    uses: commands.popQueue
+    with: { queue: work_queue, head_into: current_item }
+    reads: [work_queue]
+    writes: [work_queue, current_item]
+
+  - id: process_item
+    uses: nodes.llm
+    with:
+      system: "Complete the work item in one short paragraph."
+      user: "Work item: {{item}}"
+      input: { item: current_item }
+      out: processed
+    reads: [current_item]
+    writes: [processed]
+
+  - id: publish
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [processed, work_queue] }
+      out_dir: "../../.runs/out"
+      filename: "queue-results.json"
+      format: json
+      into: drained
+    writes: [drained]
+
+edges:
+  - { from: seed_queue, to: pop_next }
+  - { from: pop_next, to: process_item }
+  - loop: { from: process_item, body_from: pop_next, until: "state.work_queue.length == 0", max: 20, on_max: publish }
+  - { from: publish, to: END }

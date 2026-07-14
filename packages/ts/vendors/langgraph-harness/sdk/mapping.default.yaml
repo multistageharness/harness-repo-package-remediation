@@ -1,0 +1,70 @@
+# langgraph-langchain-harness default mapping — pattern name → Node ESM module + export.
+# This file IS the yaml→mapping stage for every built-in pattern: one atomic
+# file per pattern, imported on demand by the registry (dynamic import()).
+# Projects extend it with `extends: default` in their own mapping.yaml.
+version: 100
+patterns:
+  # ── prompt ────────────────────────────────────────────────────────────────
+  prompt.file:            { module: "@internal/langgraph-langchain-harness-sdk/atoms/prompt/file.mjs",             export: file }
+  prompt.system:          { module: "@internal/langgraph-langchain-harness-sdk/atoms/prompt/system.mjs",           export: system }
+  prompt.chat:            { module: "@internal/langgraph-langchain-harness-sdk/atoms/prompt/chat.mjs",             export: chat }
+  prompt.fewShot:         { module: "@internal/langgraph-langchain-harness-sdk/atoms/prompt/few-shot.mjs",         export: fewShot }
+
+  # ── template ──────────────────────────────────────────────────────────────
+  template.interpolate:   { module: "@internal/langgraph-langchain-harness-sdk/atoms/template/interpolate.mjs",    export: interpolate }
+  template.handlebars:    { module: "@internal/langgraph-langchain-harness-sdk/atoms/template/handlebars.mjs",     export: handlebars }
+  template.markdownReport: { module: "@internal/langgraph-langchain-harness-sdk/atoms/template/markdown-report.mjs", export: markdownReport }
+  template.jsonReport:    { module: "@internal/langgraph-langchain-harness-sdk/atoms/template/json-report.mjs",    export: jsonReport }
+
+  # ── skills (LLM reasoning) ────────────────────────────────────────────────
+  skills.generate:        { module: "@internal/langgraph-langchain-harness-sdk/atoms/skills/generate.mjs",         export: generate }
+  skills.classify:        { module: "@internal/langgraph-langchain-harness-sdk/atoms/skills/classify.mjs",         export: classify }
+  skills.extract:         { module: "@internal/langgraph-langchain-harness-sdk/atoms/skills/extract.mjs",          export: extract }
+  skills.summarize:       { module: "@internal/langgraph-langchain-harness-sdk/atoms/skills/summarize.mjs",        export: summarize }
+  skills.judge:           { module: "@internal/langgraph-langchain-harness-sdk/atoms/skills/judge.mjs",            export: judge }
+
+  # ── commands (precision code I/O) ─────────────────────────────────────────
+  commands.shell:         { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/shell.mjs",          export: shell }
+  commands.httpFetch:     { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/http-fetch.mjs",     export: httpFetch }
+  commands.fsRead:        { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/fs-read.mjs",        export: fsRead }
+  commands.fsWrite:       { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/fs-write.mjs",       export: fsWrite }
+  commands.fsList:        { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/fs-list.mjs",        export: fsList }
+  commands.readJson:      { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/read-json.mjs",      export: readJson }
+  commands.gitClone:      { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/git-clone.mjs",      export: gitClone }
+  commands.renderReport:  { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/render-report.mjs",  export: renderReport }
+  commands.emitKeyed:     { module: "@internal/langgraph-langchain-harness-sdk/atoms/commands/emit-keyed.mjs",     export: emitKeyed }
+
+  # ── knowledge (offline deterministic RAG lane) ────────────────────────────
+  knowledge.loadDocuments: { module: "@internal/langgraph-langchain-harness-sdk/atoms/knowledge/load-documents.mjs", export: loadDocuments }
+  knowledge.chunk:        { module: "@internal/langgraph-langchain-harness-sdk/atoms/knowledge/chunk.mjs",         export: chunk }
+  knowledge.embed:        { module: "@internal/langgraph-langchain-harness-sdk/atoms/knowledge/embed.mjs",         export: embed }
+  knowledge.vectorStore:  { module: "@internal/langgraph-langchain-harness-sdk/atoms/knowledge/vector-store.mjs",  export: vectorStore }
+  knowledge.retrieve:     { module: "@internal/langgraph-langchain-harness-sdk/atoms/knowledge/retrieve.mjs",      export: retrieve }
+
+  # ── nodes (graph control shapes) ──────────────────────────────────────────
+  nodes.llm:              { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/llm.mjs",               export: llm }
+  nodes.passthrough:      { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/passthrough.mjs",       export: passthrough }
+  nodes.router:           { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/router.mjs",            export: router }
+  nodes.gate:             { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/gate.mjs",              export: gate }
+  nodes.interrupt:        { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/interrupt.mjs",         export: interruptNode }
+  nodes.fanout:           { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/fanout.mjs",            export: fanout }
+  nodes.subgraph:         { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/subgraph.mjs",          export: subgraph }
+  nodes.agent:            { module: "@internal/langgraph-langchain-harness-sdk/atoms/nodes/agent.mjs",             export: agent }
+
+  # ── edges (topology wiring) ───────────────────────────────────────────────
+  edges.linear:           { module: "@internal/langgraph-langchain-harness-sdk/atoms/edges/linear.mjs",            export: linear }
+  edges.conditional:      { module: "@internal/langgraph-langchain-harness-sdk/atoms/edges/conditional.mjs",       export: conditional }
+  edges.switch:           { module: "@internal/langgraph-langchain-harness-sdk/atoms/edges/switch.mjs",            export: switchEdge }
+  edges.loop:             { module: "@internal/langgraph-langchain-harness-sdk/atoms/edges/loop.mjs",              export: loop }
+  edges.fanout:           { module: "@internal/langgraph-langchain-harness-sdk/atoms/edges/fanout.mjs",            export: fanout }
+
+  # ── condition (safe predicates/routers) ───────────────────────────────────
+  condition.expression:   { module: "@internal/langgraph-langchain-harness-sdk/atoms/condition/expression.mjs",    export: expression }
+  condition.switchOn:     { module: "@internal/langgraph-langchain-harness-sdk/atoms/condition/switch-on.mjs",     export: switchOn }
+  condition.truthy:       { module: "@internal/langgraph-langchain-harness-sdk/atoms/condition/truthy.mjs",        export: truthy }
+  condition.always:       { module: "@internal/langgraph-langchain-harness-sdk/atoms/condition/always.mjs",        export: always }
+
+  # ── checkpoints (thread persistence) ──────────────────────────────────────
+  checkpoints.none:       { module: "@internal/langgraph-langchain-harness-sdk/atoms/checkpoints/none.mjs",        export: none }
+  checkpoints.memory:     { module: "@internal/langgraph-langchain-harness-sdk/atoms/checkpoints/memory.mjs",      export: memory }
+  checkpoints.file:       { module: "@internal/langgraph-langchain-harness-sdk/atoms/checkpoints/file.mjs",        export: file }

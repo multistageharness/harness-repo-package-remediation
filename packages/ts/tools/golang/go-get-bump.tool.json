@@ -1,0 +1,12 @@
+{
+  "id": "go-get-bump",
+  "ecosystem": "golang",
+  "kind": "remediation",
+  "title": "go module version bump",
+  "description": "Bump a module requirement to a fixed patched version in go.mod.",
+  "capabilities": ["direct-bump", "transitive-pin", "manifest-edit"],
+  "manifests": ["go.mod"],
+  "argv_template": ["go", "get", "{{package}}@{{version}}"],
+  "produces": ["go.mod", "go.sum"],
+  "safety": "go get updates go.mod + go.sum; go mod tidy deferred"
+}

@@ -1,0 +1,2096 @@
+{
+  "repos": [
+    {
+      "key": "skipped-rem",
+      "url": "https://github.com/o/skipped-rem",
+      "eco": "node",
+      "branch": "main",
+      "license": "n/a",
+      "loc": 2006,
+      "vulns": [
+        {
+          "pkg": "lodash",
+          "sev": "high",
+          "cve": "CVE-2021-23337",
+          "scope": "direct",
+          "from": "4.17.20",
+          "to": "4.17.21",
+          "tool": "npm-version-bump",
+          "action": "direct-bump"
+        },
+        {
+          "pkg": "minimist",
+          "sev": "critical",
+          "cve": "CVE-2021-44906",
+          "scope": "transitive",
+          "from": "1.2.5",
+          "to": "1.2.6",
+          "tool": "npm-overrides-pin",
+          "action": "overrides-pin"
+        }
+      ],
+      "actionCount": 2,
+      "reps": [
+        {
+          "repo": "https://github.com/o/skipped-rem",
+          "package": "lodash",
+          "applied": true,
+          "from": "4.17.20",
+          "to": "4.17.21",
+          "source": "dataset",
+          "strategy": "direct-bump",
+          "tool": "npm-version-bump",
+          "bump": "patch"
+        },
+        {
+          "repo": "https://github.com/o/skipped-rem",
+          "package": "minimist",
+          "applied": false,
+          "from": "1.2.5",
+          "to": "1.2.6",
+          "source": "target-ladder",
+          "skipReason": "no fix available below the major boundary",
+          "strategy": "transitive-pin",
+          "tool": "npm-overrides-pin",
+          "bump": "patch"
+        }
+      ],
+      "prompt": "Remediate skipped-rem",
+      "promptSource": "deterministic",
+      "skill": "npm-remediation",
+      "tools": [],
+      "cloneError": null,
+      "overall": "clean",
+      "outcomes": {
+        "fixed": 1,
+        "broken": 0,
+        "blocked": 0,
+        "skipped": 1,
+        "bug": 0
+      },
+      "diagnoses": [],
+      "edges": [
+        [
+          "skipped-rem-app@1.0.0",
+          "lodash@4.17.20"
+        ],
+        [
+          "skipped-rem-app@1.0.0",
+          "express@4.18.2"
+        ],
+        [
+          "express@4.18.2",
+          "minimist@1.2.5"
+        ]
+      ],
+      "dgNodes": [
+        {
+          "id": "skipped-rem-app@1.0.0",
+          "name": "skipped-rem-app",
+          "version": "1.0.0"
+        },
+        {
+          "id": "lodash@4.17.20",
+          "name": "lodash",
+          "version": "4.17.20"
+        },
+        {
+          "id": "express@4.18.2",
+          "name": "express",
+          "version": "4.18.2"
+        },
+        {
+          "id": "minimist@1.2.5",
+          "name": "minimist",
+          "version": "1.2.5"
+        }
+      ],
+      "stages": [
+        {
+          "name": "clone",
+          "status": "ok",
+          "duration": 3297
+        },
+        {
+          "name": "remediate",
+          "status": "ok",
+          "duration": 522
+        },
+        {
+          "name": "install",
+          "status": "ok",
+          "duration": 873
+        },
+        {
+          "name": "build",
+          "status": "ok",
+          "duration": 7706
+        },
+        {
+          "name": "test",
+          "status": "ok",
+          "duration": 2899
+        },
+        {
+          "name": "validate",
+          "status": "ok",
+          "duration": 1326
+        }
+      ],
+      "id": "skipped-rem",
+      "snapshots": [
+        {
+          "id": "pre-remediate",
+          "after": "remediate",
+          "label": "Pre-remediate",
+          "file": "package.json",
+          "kind": "diff",
+          "before": "{\n  \"name\": \"skipped-rem\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"lodash\": \"4.17.20\",\n    \"minimist\": \"1.2.5\"\n  }\n}",
+          "next": "{\n  \"name\": \"skipped-rem\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"lodash\": \"4.17.20\",\n    \"minimist\": \"1.2.5\"\n  }\n}",
+          "changed": 0,
+          "digest": "701ae5c63857aa1a",
+          "diff": [
+            {
+              "t": " ",
+              "text": "{"
+            },
+            {
+              "t": " ",
+              "text": "  \"name\": \"skipped-rem\","
+            },
+            {
+              "t": " ",
+              "text": "  \"version\": \"1.0.0\","
+            },
+            {
+              "t": " ",
+              "text": "  \"dependencies\": {"
+            },
+            {
+              "t": " ",
+              "text": "    \"lodash\": \"4.17.20\","
+            },
+            {
+              "t": " ",
+              "text": "    \"minimist\": \"1.2.5\""
+            },
+            {
+              "t": " ",
+              "text": "  }"
+            },
+            {
+              "t": " ",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "post-remediate",
+          "after": "remediate",
+          "label": "Post-remediate",
+          "file": "package.json",
+          "kind": "diff",
+          "before": "{\n  \"name\": \"skipped-rem\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"lodash\": \"4.17.20\",\n    \"minimist\": \"1.2.5\"\n  }\n}",
+          "next": "{\n  \"name\": \"skipped-rem\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"lodash\": \"4.17.21\",\n    \"minimist\": \"1.2.6\"\n  }\n}",
+          "changed": 1,
+          "digest": "be8dbff586248af7",
+          "diff": [
+            {
+              "t": " ",
+              "text": "{"
+            },
+            {
+              "t": " ",
+              "text": "  \"name\": \"skipped-rem\","
+            },
+            {
+              "t": " ",
+              "text": "  \"version\": \"1.0.0\","
+            },
+            {
+              "t": " ",
+              "text": "  \"dependencies\": {"
+            },
+            {
+              "t": "-",
+              "text": "    \"lodash\": \"4.17.20\","
+            },
+            {
+              "t": "-",
+              "text": "    \"minimist\": \"1.2.5\""
+            },
+            {
+              "t": "+",
+              "text": "    \"lodash\": \"4.17.21\","
+            },
+            {
+              "t": "+",
+              "text": "    \"minimist\": \"1.2.6\""
+            },
+            {
+              "t": " ",
+              "text": "  }"
+            },
+            {
+              "t": " ",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "post-install",
+          "after": "install",
+          "label": "Post-install",
+          "file": "package-lock.json",
+          "kind": "digest",
+          "changed": 2,
+          "digest": "08bd2e92abd0da5e",
+          "diff": []
+        },
+        {
+          "id": "post-build",
+          "after": "build",
+          "label": "Post-build",
+          "file": "dist/",
+          "kind": "digest",
+          "changed": 0,
+          "digest": "67c4dfa92bec5603",
+          "diff": []
+        }
+      ],
+      "manifest": {
+        "file": "package.json",
+        "before": "{\n  \"name\": \"skipped-rem\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"lodash\": \"4.17.20\",\n    \"minimist\": \"1.2.5\"\n  }\n}",
+        "after": "{\n  \"name\": \"skipped-rem\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"lodash\": \"4.17.21\",\n    \"minimist\": \"1.2.6\"\n  }\n}"
+      },
+      "nodes": [
+        {
+          "id": "skipped-rem-app@1.0.0",
+          "name": "skipped-rem-app",
+          "version": "1.0.0",
+          "depth": 0,
+          "vuln": null,
+          "isRoot": true
+        },
+        {
+          "id": "lodash@4.17.20",
+          "name": "lodash",
+          "version": "4.17.20",
+          "depth": 1,
+          "vuln": {
+            "pkg": "lodash",
+            "sev": "high",
+            "cve": "CVE-2021-23337",
+            "scope": "direct",
+            "from": "4.17.20",
+            "to": "4.17.21",
+            "tool": "npm-version-bump",
+            "action": "direct-bump"
+          },
+          "isRoot": false
+        },
+        {
+          "id": "express@4.18.2",
+          "name": "express",
+          "version": "4.18.2",
+          "depth": 1,
+          "vuln": null,
+          "isRoot": false
+        },
+        {
+          "id": "minimist@1.2.5",
+          "name": "minimist",
+          "version": "1.2.5",
+          "depth": 2,
+          "vuln": {
+            "pkg": "minimist",
+            "sev": "critical",
+            "cve": "CVE-2021-44906",
+            "scope": "transitive",
+            "from": "1.2.5",
+            "to": "1.2.6",
+            "tool": "npm-overrides-pin",
+            "action": "overrides-pin"
+          },
+          "isRoot": false
+        }
+      ],
+      "logs": [
+        {
+          "t": "14:02:00.107",
+          "stage": "clone",
+          "level": "cmd",
+          "msg": "git clone --depth 1 https://github.com/o/skipped-rem.git"
+        },
+        {
+          "t": "14:02:00.210",
+          "stage": "clone",
+          "level": "ok",
+          "msg": "HEAD is now at c330cd8 (main)"
+        },
+        {
+          "t": "14:02:00.287",
+          "stage": "remediate",
+          "level": "cmd",
+          "msg": "skill npm-remediation --repo skipped-rem"
+        },
+        {
+          "t": "14:02:00.336",
+          "stage": "remediate",
+          "level": "info",
+          "msg": "npm-version-bump: lodash 4.17.20 → 4.17.21"
+        },
+        {
+          "t": "14:02:00.592",
+          "stage": "remediate",
+          "level": "ok",
+          "msg": "direct-bump applied (CVE-2021-23337)"
+        },
+        {
+          "t": "14:02:00.783",
+          "stage": "remediate",
+          "level": "info",
+          "msg": "npm-overrides-pin: minimist 1.2.5 → 1.2.6"
+        },
+        {
+          "t": "14:02:00.884",
+          "stage": "remediate",
+          "level": "ok",
+          "msg": "overrides-pin applied (CVE-2021-44906)"
+        },
+        {
+          "t": "14:02:01.070",
+          "stage": "install",
+          "level": "cmd",
+          "msg": "npm install --no-audit --no-fund"
+        },
+        {
+          "t": "14:02:01.322",
+          "stage": "install",
+          "level": "ok",
+          "msg": "install-verify: ok — resolved lodash@4.17.21, minimist@1.2.6"
+        },
+        {
+          "t": "14:02:01.431",
+          "stage": "build",
+          "level": "cmd",
+          "msg": "npm run build"
+        },
+        {
+          "t": "14:02:01.726",
+          "stage": "build",
+          "level": "ok",
+          "msg": "build: ok"
+        },
+        {
+          "t": "14:02:01.984",
+          "stage": "test",
+          "level": "cmd",
+          "msg": "npm test"
+        },
+        {
+          "t": "14:02:02.188",
+          "stage": "test",
+          "level": "ok",
+          "msg": "9 passed, 0 failed"
+        },
+        {
+          "t": "14:02:02.382",
+          "stage": "validate",
+          "level": "cmd",
+          "msg": "audit --ecosystem node --fail-on high"
+        },
+        {
+          "t": "14:02:02.488",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "CVE-2021-23337 — resolved 4.17.21 satisfies first-patched"
+        },
+        {
+          "t": "14:02:02.726",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "CVE-2021-44906 — resolved 1.2.6 satisfies first-patched"
+        },
+        {
+          "t": "14:02:02.920",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "1 fixed · 0 broken · 0 blocked"
+        }
+      ],
+      "ledger": {
+        "fixed": 1,
+        "broken": 0,
+        "blocked": 0,
+        "skipped": 1,
+        "bug": 0
+      },
+      "inventory": {
+        "packages": [
+          {
+            "name": "express",
+            "versions": [
+              "4.18.2"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "skipped-rem-app@1.0.0"
+            ],
+            "conflict": false,
+            "root": false
+          },
+          {
+            "name": "lodash",
+            "versions": [
+              "4.17.20"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "skipped-rem-app@1.0.0"
+            ],
+            "conflict": false,
+            "root": false
+          },
+          {
+            "name": "minimist",
+            "versions": [
+              "1.2.5"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "express@4.18.2"
+            ],
+            "conflict": false,
+            "root": false
+          },
+          {
+            "name": "skipped-rem-app",
+            "versions": [
+              "1.0.0"
+            ],
+            "unresolved": false,
+            "dependents": [],
+            "conflict": false,
+            "root": true
+          }
+        ],
+        "graphed": true
+      },
+      "meta": {
+        "branch": "main",
+        "commit": "c330cd8",
+        "license": "n/a",
+        "loc": 2006,
+        "manifest": "package.json",
+        "lock": "package-lock.json",
+        "cloneMs": 2108,
+        "sizeKb": 435,
+        "contributors": 5,
+        "lastCommit": "2026-06-26"
+      }
+    },
+    {
+      "key": "broken-repo",
+      "url": "https://github.com/o/broken-repo",
+      "eco": "python",
+      "branch": "main",
+      "license": "n/a",
+      "loc": 801,
+      "vulns": [
+        {
+          "pkg": "urllib3",
+          "sev": "medium",
+          "cve": "CVE-2023-45803",
+          "scope": "direct",
+          "from": "1.26.0",
+          "to": "2.0.7",
+          "tool": "pip-requirement-bump",
+          "action": "direct-bump"
+        }
+      ],
+      "actionCount": 1,
+      "reps": [
+        {
+          "repo": "https://github.com/o/broken-repo",
+          "package": "urllib3",
+          "applied": true,
+          "from": "1.26.0",
+          "to": "2.0.7",
+          "source": "dataset",
+          "strategy": "direct-bump",
+          "tool": "pip-requirement-bump",
+          "bump": "major"
+        }
+      ],
+      "prompt": "Remediate broken-repo",
+      "promptSource": "deterministic",
+      "skill": "pip-remediation",
+      "tools": [],
+      "cloneError": null,
+      "overall": "failed",
+      "outcomes": {
+        "fixed": 0,
+        "broken": 1,
+        "blocked": 0,
+        "skipped": 0,
+        "bug": 0
+      },
+      "diagnoses": [
+        {
+          "package": "urllib3",
+          "status": "broken",
+          "cause": "import-error"
+        }
+      ],
+      "edges": [],
+      "dgNodes": [],
+      "stages": [
+        {
+          "name": "clone",
+          "status": "ok",
+          "duration": 2526
+        },
+        {
+          "name": "remediate",
+          "status": "ok",
+          "duration": 4060
+        },
+        {
+          "name": "install",
+          "status": "ok",
+          "duration": 10156
+        },
+        {
+          "name": "build",
+          "status": "failed",
+          "duration": 7300
+        },
+        {
+          "name": "test",
+          "status": "failed",
+          "duration": 3381
+        },
+        {
+          "name": "validate",
+          "status": "ok",
+          "duration": 1878
+        }
+      ],
+      "id": "broken-repo",
+      "snapshots": [
+        {
+          "id": "pre-remediate",
+          "after": "remediate",
+          "label": "Pre-remediate",
+          "file": "requirements.txt",
+          "kind": "diff",
+          "before": "urllib3==1.26.0",
+          "next": "urllib3==1.26.0",
+          "changed": 0,
+          "digest": "2c810539501b4553",
+          "diff": [
+            {
+              "t": " ",
+              "text": "urllib3==1.26.0"
+            }
+          ]
+        },
+        {
+          "id": "post-remediate",
+          "after": "remediate",
+          "label": "Post-remediate",
+          "file": "requirements.txt",
+          "kind": "diff",
+          "before": "urllib3==1.26.0",
+          "next": "urllib3==2.0.7",
+          "changed": 1,
+          "digest": "e7fd81f0bc12e918",
+          "diff": [
+            {
+              "t": "-",
+              "text": "urllib3==1.26.0"
+            },
+            {
+              "t": "+",
+              "text": "urllib3==2.0.7"
+            }
+          ]
+        },
+        {
+          "id": "post-install",
+          "after": "install",
+          "label": "Post-install",
+          "file": "pip-freeze.txt",
+          "kind": "digest",
+          "changed": 1,
+          "digest": "2f16ad9f07b3c2a5",
+          "diff": []
+        },
+        {
+          "id": "post-build",
+          "after": "build",
+          "label": "Post-build",
+          "file": "dist/",
+          "kind": "digest",
+          "changed": 0,
+          "digest": "daa556347e46d9a4",
+          "diff": []
+        }
+      ],
+      "manifest": {
+        "file": "requirements.txt",
+        "before": "urllib3==1.26.0",
+        "after": "urllib3==2.0.7"
+      },
+      "nodes": [
+        {
+          "id": "root",
+          "name": "broken-repo",
+          "version": "main",
+          "depth": 0,
+          "vuln": null,
+          "isRoot": true
+        }
+      ],
+      "logs": [
+        {
+          "t": "14:02:00.346",
+          "stage": "clone",
+          "level": "cmd",
+          "msg": "git clone --depth 1 https://github.com/o/broken-repo.git"
+        },
+        {
+          "t": "14:02:00.540",
+          "stage": "clone",
+          "level": "ok",
+          "msg": "HEAD is now at 3482f7a (main)"
+        },
+        {
+          "t": "14:02:00.906",
+          "stage": "remediate",
+          "level": "cmd",
+          "msg": "skill pip-remediation --repo broken-repo"
+        },
+        {
+          "t": "14:02:01.185",
+          "stage": "remediate",
+          "level": "info",
+          "msg": "pip-requirement-bump: urllib3 1.26.0 → 2.0.7"
+        },
+        {
+          "t": "14:02:01.351",
+          "stage": "remediate",
+          "level": "ok",
+          "msg": "direct-bump applied (CVE-2023-45803)"
+        },
+        {
+          "t": "14:02:01.665",
+          "stage": "install",
+          "level": "cmd",
+          "msg": "pip install -r requirements.txt -c constraints.txt"
+        },
+        {
+          "t": "14:02:01.896",
+          "stage": "install",
+          "level": "ok",
+          "msg": "install-verify: ok — resolved urllib3@2.0.7"
+        },
+        {
+          "t": "14:02:02.054",
+          "stage": "build",
+          "level": "cmd",
+          "msg": "python -m build --wheel"
+        },
+        {
+          "t": "14:02:02.166",
+          "stage": "build",
+          "level": "error",
+          "msg": "build: failed"
+        },
+        {
+          "t": "14:02:02.315",
+          "stage": "test",
+          "level": "warn",
+          "msg": "test: failed — stage skipped (does not affect pass rate)"
+        },
+        {
+          "t": "14:02:02.444",
+          "stage": "validate",
+          "level": "cmd",
+          "msg": "audit --ecosystem python --fail-on high"
+        },
+        {
+          "t": "14:02:02.634",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "CVE-2023-45803 — resolved 2.0.7 satisfies first-patched"
+        },
+        {
+          "t": "14:02:02.806",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "0 fixed · 1 broken · 0 blocked"
+        }
+      ],
+      "ledger": {
+        "fixed": 0,
+        "broken": 1,
+        "blocked": 0,
+        "skipped": 0,
+        "bug": 0
+      },
+      "inventory": {
+        "packages": [],
+        "graphed": false
+      },
+      "meta": {
+        "branch": "main",
+        "commit": "3482f7a",
+        "license": "n/a",
+        "loc": 801,
+        "manifest": "requirements.txt",
+        "lock": "pip-freeze.txt",
+        "cloneMs": 889,
+        "sizeKb": 2027,
+        "contributors": 6,
+        "lastCommit": "2026-03-25"
+      }
+    },
+    {
+      "key": "rule-injected",
+      "url": "https://github.com/o/rule-injected",
+      "eco": "node",
+      "branch": "main",
+      "license": "n/a",
+      "loc": 2525,
+      "vulns": [
+        {
+          "pkg": "axios",
+          "sev": "high",
+          "cve": "CVE-2023-45857",
+          "scope": "direct",
+          "from": "1.5.0",
+          "to": "1.6.0",
+          "tool": "npm-version-bump",
+          "action": "direct-bump"
+        }
+      ],
+      "actionCount": 2,
+      "reps": [
+        {
+          "repo": "https://github.com/o/rule-injected",
+          "package": "axios",
+          "applied": true,
+          "from": "1.5.0",
+          "to": "1.6.0",
+          "source": "dataset",
+          "strategy": "direct-bump",
+          "tool": "npm-version-bump",
+          "bump": "minor"
+        },
+        {
+          "repo": "https://github.com/o/rule-injected",
+          "package": "semver",
+          "applied": true,
+          "from": "7.3.0",
+          "to": "7.5.4",
+          "source": "package-rules",
+          "strategy": "transitive-pin",
+          "tool": "npm-overrides-pin",
+          "pinnedIn": "package.json",
+          "bump": "minor"
+        }
+      ],
+      "prompt": "Remediate rule-injected",
+      "promptSource": "deterministic",
+      "skill": "npm-remediation",
+      "tools": [],
+      "cloneError": null,
+      "overall": "clean",
+      "outcomes": {
+        "fixed": 1,
+        "broken": 0,
+        "blocked": 0,
+        "skipped": 0,
+        "bug": 0
+      },
+      "diagnoses": [],
+      "edges": [
+        [
+          "rule-injected-app@2.1.0",
+          "axios@1.5.0"
+        ],
+        [
+          "rule-injected-app@2.1.0",
+          "semver@7.5.4"
+        ],
+        [
+          "rule-injected-app@2.1.0",
+          "lodash@4.17.20"
+        ],
+        [
+          "axios@1.5.0",
+          "lodash@unknown"
+        ]
+      ],
+      "dgNodes": [
+        {
+          "id": "rule-injected-app@2.1.0",
+          "name": "rule-injected-app",
+          "version": "2.1.0"
+        },
+        {
+          "id": "axios@1.5.0",
+          "name": "axios",
+          "version": "1.5.0"
+        },
+        {
+          "id": "semver@7.5.4",
+          "name": "semver",
+          "version": "7.5.4"
+        },
+        {
+          "id": "lodash@4.17.20",
+          "name": "lodash",
+          "version": "4.17.20"
+        },
+        {
+          "id": "lodash@unknown",
+          "name": "lodash",
+          "version": null
+        }
+      ],
+      "stages": [
+        {
+          "name": "clone",
+          "status": "ok",
+          "duration": 1426
+        },
+        {
+          "name": "remediate",
+          "status": "ok",
+          "duration": 951
+        },
+        {
+          "name": "install",
+          "status": "ok",
+          "duration": 4548
+        },
+        {
+          "name": "build",
+          "status": "ok",
+          "duration": 1085
+        },
+        {
+          "name": "test",
+          "status": "ok",
+          "duration": 2331
+        },
+        {
+          "name": "validate",
+          "status": "ok",
+          "duration": 3992
+        }
+      ],
+      "id": "rule-injected",
+      "snapshots": [
+        {
+          "id": "pre-remediate",
+          "after": "remediate",
+          "label": "Pre-remediate",
+          "file": "package.json",
+          "kind": "diff",
+          "before": "{\n  \"name\": \"rule-injected\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"axios\": \"1.5.0\"\n  }\n}",
+          "next": "{\n  \"name\": \"rule-injected\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"axios\": \"1.5.0\"\n  }\n}",
+          "changed": 0,
+          "digest": "16876ac2312d02ce",
+          "diff": [
+            {
+              "t": " ",
+              "text": "{"
+            },
+            {
+              "t": " ",
+              "text": "  \"name\": \"rule-injected\","
+            },
+            {
+              "t": " ",
+              "text": "  \"version\": \"1.0.0\","
+            },
+            {
+              "t": " ",
+              "text": "  \"dependencies\": {"
+            },
+            {
+              "t": " ",
+              "text": "    \"axios\": \"1.5.0\""
+            },
+            {
+              "t": " ",
+              "text": "  }"
+            },
+            {
+              "t": " ",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "post-remediate",
+          "after": "remediate",
+          "label": "Post-remediate",
+          "file": "package.json",
+          "kind": "diff",
+          "before": "{\n  \"name\": \"rule-injected\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"axios\": \"1.5.0\"\n  }\n}",
+          "next": "{\n  \"name\": \"rule-injected\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"axios\": \"1.6.0\"\n  }\n}",
+          "changed": 1,
+          "digest": "3c54b181f2542afb",
+          "diff": [
+            {
+              "t": " ",
+              "text": "{"
+            },
+            {
+              "t": " ",
+              "text": "  \"name\": \"rule-injected\","
+            },
+            {
+              "t": " ",
+              "text": "  \"version\": \"1.0.0\","
+            },
+            {
+              "t": " ",
+              "text": "  \"dependencies\": {"
+            },
+            {
+              "t": "-",
+              "text": "    \"axios\": \"1.5.0\""
+            },
+            {
+              "t": "+",
+              "text": "    \"axios\": \"1.6.0\""
+            },
+            {
+              "t": " ",
+              "text": "  }"
+            },
+            {
+              "t": " ",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "post-install",
+          "after": "install",
+          "label": "Post-install",
+          "file": "package-lock.json",
+          "kind": "digest",
+          "changed": 1,
+          "digest": "66eb93fe8ad93bf2",
+          "diff": []
+        },
+        {
+          "id": "post-build",
+          "after": "build",
+          "label": "Post-build",
+          "file": "dist/",
+          "kind": "digest",
+          "changed": 0,
+          "digest": "f03cdfcde4d429ef",
+          "diff": []
+        }
+      ],
+      "manifest": {
+        "file": "package.json",
+        "before": "{\n  \"name\": \"rule-injected\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"axios\": \"1.5.0\"\n  }\n}",
+        "after": "{\n  \"name\": \"rule-injected\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"axios\": \"1.6.0\"\n  }\n}"
+      },
+      "nodes": [
+        {
+          "id": "rule-injected-app@2.1.0",
+          "name": "rule-injected-app",
+          "version": "2.1.0",
+          "depth": 0,
+          "vuln": null,
+          "isRoot": true
+        },
+        {
+          "id": "axios@1.5.0",
+          "name": "axios",
+          "version": "1.5.0",
+          "depth": 1,
+          "vuln": {
+            "pkg": "axios",
+            "sev": "high",
+            "cve": "CVE-2023-45857",
+            "scope": "direct",
+            "from": "1.5.0",
+            "to": "1.6.0",
+            "tool": "npm-version-bump",
+            "action": "direct-bump"
+          },
+          "isRoot": false
+        },
+        {
+          "id": "semver@7.5.4",
+          "name": "semver",
+          "version": "7.5.4",
+          "depth": 1,
+          "vuln": null,
+          "isRoot": false
+        },
+        {
+          "id": "lodash@4.17.20",
+          "name": "lodash",
+          "version": "4.17.20",
+          "depth": 1,
+          "vuln": null,
+          "isRoot": false
+        },
+        {
+          "id": "lodash@unknown",
+          "name": "lodash",
+          "version": "",
+          "depth": 2,
+          "vuln": null,
+          "isRoot": false
+        }
+      ],
+      "logs": [
+        {
+          "t": "14:02:00.166",
+          "stage": "clone",
+          "level": "cmd",
+          "msg": "git clone --depth 1 https://github.com/o/rule-injected.git"
+        },
+        {
+          "t": "14:02:00.386",
+          "stage": "clone",
+          "level": "ok",
+          "msg": "HEAD is now at 7008e97 (main)"
+        },
+        {
+          "t": "14:02:00.547",
+          "stage": "remediate",
+          "level": "cmd",
+          "msg": "skill npm-remediation --repo rule-injected"
+        },
+        {
+          "t": "14:02:00.767",
+          "stage": "remediate",
+          "level": "info",
+          "msg": "npm-version-bump: axios 1.5.0 → 1.6.0"
+        },
+        {
+          "t": "14:02:01.074",
+          "stage": "remediate",
+          "level": "ok",
+          "msg": "direct-bump applied (CVE-2023-45857)"
+        },
+        {
+          "t": "14:02:01.414",
+          "stage": "install",
+          "level": "cmd",
+          "msg": "npm install --no-audit --no-fund"
+        },
+        {
+          "t": "14:02:01.505",
+          "stage": "install",
+          "level": "ok",
+          "msg": "install-verify: ok — resolved axios@1.6.0"
+        },
+        {
+          "t": "14:02:01.653",
+          "stage": "build",
+          "level": "cmd",
+          "msg": "npm run build"
+        },
+        {
+          "t": "14:02:02.013",
+          "stage": "build",
+          "level": "ok",
+          "msg": "build: ok"
+        },
+        {
+          "t": "14:02:02.078",
+          "stage": "test",
+          "level": "cmd",
+          "msg": "npm test"
+        },
+        {
+          "t": "14:02:02.429",
+          "stage": "test",
+          "level": "ok",
+          "msg": "27 passed, 0 failed"
+        },
+        {
+          "t": "14:02:02.677",
+          "stage": "validate",
+          "level": "cmd",
+          "msg": "audit --ecosystem node --fail-on high"
+        },
+        {
+          "t": "14:02:03.028",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "CVE-2023-45857 — resolved 1.6.0 satisfies first-patched"
+        },
+        {
+          "t": "14:02:03.343",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "1 fixed · 0 broken · 0 blocked"
+        }
+      ],
+      "ledger": {
+        "fixed": 1,
+        "broken": 0,
+        "blocked": 0,
+        "skipped": 0,
+        "bug": 0
+      },
+      "inventory": {
+        "packages": [
+          {
+            "name": "axios",
+            "versions": [
+              "1.5.0"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "rule-injected-app@2.1.0"
+            ],
+            "conflict": false,
+            "root": false
+          },
+          {
+            "name": "lodash",
+            "versions": [
+              "4.17.20"
+            ],
+            "unresolved": true,
+            "dependents": [
+              "axios@1.5.0",
+              "rule-injected-app@2.1.0"
+            ],
+            "conflict": false,
+            "root": false
+          },
+          {
+            "name": "rule-injected-app",
+            "versions": [
+              "2.1.0"
+            ],
+            "unresolved": false,
+            "dependents": [],
+            "conflict": false,
+            "root": true
+          },
+          {
+            "name": "semver",
+            "versions": [
+              "7.5.4"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "rule-injected-app@2.1.0"
+            ],
+            "conflict": false,
+            "root": false
+          }
+        ],
+        "graphed": true
+      },
+      "meta": {
+        "branch": "main",
+        "commit": "7008e97",
+        "license": "n/a",
+        "loc": 2525,
+        "manifest": "package.json",
+        "lock": "package-lock.json",
+        "cloneMs": 779,
+        "sizeKb": 1137,
+        "contributors": 9,
+        "lastCommit": "2026-06-18"
+      }
+    },
+    {
+      "key": "blocked-repo",
+      "url": "https://github.com/o/blocked-repo",
+      "eco": "java",
+      "branch": "main",
+      "license": "n/a",
+      "loc": 847,
+      "vulns": [
+        {
+          "pkg": "org.apache.commons:commons-text",
+          "sev": "critical",
+          "cve": "CVE-2022-42889",
+          "scope": "direct",
+          "from": "1.9",
+          "to": "1.10.0",
+          "tool": "maven-version-bump",
+          "action": "direct-bump"
+        }
+      ],
+      "actionCount": 1,
+      "reps": [
+        {
+          "repo": "https://github.com/o/blocked-repo",
+          "package": "org.apache.commons:commons-text",
+          "applied": true,
+          "from": "1.9",
+          "to": "1.10.0",
+          "source": "dataset",
+          "strategy": "direct-bump",
+          "tool": "maven-version-bump",
+          "bump": "minor"
+        }
+      ],
+      "prompt": "Remediate blocked-repo",
+      "promptSource": "deterministic",
+      "skill": "maven-remediation",
+      "tools": [],
+      "cloneError": null,
+      "overall": "blocked",
+      "outcomes": {
+        "fixed": 0,
+        "broken": 0,
+        "blocked": 1,
+        "skipped": 0,
+        "bug": 0
+      },
+      "diagnoses": [
+        {
+          "package": "org.apache.commons:commons-text",
+          "status": "blocked",
+          "cause": "registry-unreachable"
+        }
+      ],
+      "edges": [
+        [
+          "com.example:blocked-app:1.0.0",
+          "org.apache.commons:commons-text:1.9"
+        ],
+        [
+          "org.apache.commons:commons-text:1.9",
+          "org.apache.commons:commons-lang3:3.12.0"
+        ]
+      ],
+      "dgNodes": [
+        {
+          "id": "com.example:blocked-app:1.0.0",
+          "name": "com.example:blocked-app",
+          "version": "1.0.0"
+        },
+        {
+          "id": "org.apache.commons:commons-text:1.9",
+          "name": "org.apache.commons:commons-text",
+          "version": "1.9"
+        },
+        {
+          "id": "org.apache.commons:commons-lang3:3.12.0",
+          "name": "org.apache.commons:commons-lang3",
+          "version": "3.12.0"
+        }
+      ],
+      "stages": [
+        {
+          "name": "clone",
+          "status": "ok",
+          "duration": 1282
+        },
+        {
+          "name": "remediate",
+          "status": "ok",
+          "duration": 2373
+        },
+        {
+          "name": "install",
+          "status": "failed",
+          "duration": 4829
+        },
+        {
+          "name": "build",
+          "status": "na",
+          "duration": 2603
+        },
+        {
+          "name": "test",
+          "status": "na",
+          "duration": 2607
+        },
+        {
+          "name": "validate",
+          "status": "ok",
+          "duration": 1917
+        }
+      ],
+      "id": "blocked-repo",
+      "snapshots": [
+        {
+          "id": "pre-remediate",
+          "after": "remediate",
+          "label": "Pre-remediate",
+          "file": "pom.xml",
+          "kind": "diff",
+          "before": "<project>\n  <artifactId>blocked-repo</artifactId>\n  <dependencies>\n    <dependency>\n      <groupId>com.example</groupId>\n      <artifactId>app</artifactId>\n    </dependency>\n  </dependencies>\n</project>",
+          "next": "<project>\n  <artifactId>blocked-repo</artifactId>\n  <dependencies>\n    <dependency>\n      <groupId>com.example</groupId>\n      <artifactId>app</artifactId>\n    </dependency>\n  </dependencies>\n</project>",
+          "changed": 0,
+          "digest": "b14c08b2e4b1d5fe",
+          "diff": [
+            {
+              "t": " ",
+              "text": "<project>"
+            },
+            {
+              "t": " ",
+              "text": "  <artifactId>blocked-repo</artifactId>"
+            },
+            {
+              "t": " ",
+              "text": "  <dependencies>"
+            },
+            {
+              "t": " ",
+              "text": "    <dependency>"
+            },
+            {
+              "t": " ",
+              "text": "      <groupId>com.example</groupId>"
+            },
+            {
+              "t": " ",
+              "text": "      <artifactId>app</artifactId>"
+            },
+            {
+              "t": " ",
+              "text": "    </dependency>"
+            },
+            {
+              "t": " ",
+              "text": "  </dependencies>"
+            },
+            {
+              "t": " ",
+              "text": "</project>"
+            }
+          ]
+        },
+        {
+          "id": "post-remediate",
+          "after": "remediate",
+          "label": "Post-remediate",
+          "file": "pom.xml",
+          "kind": "diff",
+          "before": "<project>\n  <artifactId>blocked-repo</artifactId>\n  <dependencies>\n    <dependency>\n      <groupId>com.example</groupId>\n      <artifactId>app</artifactId>\n    </dependency>\n  </dependencies>\n</project>",
+          "next": "<project>\n  <artifactId>blocked-repo</artifactId>\n  <dependencyManagement>\n    <dependencies>\n      <dependency>\n        <artifactId>commons-text</artifactId>\n        <version>1.10.0</version>\n      </dependency>\n    </dependencies>\n  </dependencyManagement>\n  <dependencies>\n    <dependency>\n      <groupId>com.example</groupId>\n      <artifactId>app</artifactId>\n    </dependency>\n  </dependencies>\n</project>",
+          "changed": 1,
+          "digest": "3ed53ff172b304ab",
+          "diff": [
+            {
+              "t": " ",
+              "text": "<project>"
+            },
+            {
+              "t": " ",
+              "text": "  <artifactId>blocked-repo</artifactId>"
+            },
+            {
+              "t": "+",
+              "text": "  <dependencyManagement>"
+            },
+            {
+              "t": "+",
+              "text": "    <dependencies>"
+            },
+            {
+              "t": "+",
+              "text": "      <dependency>"
+            },
+            {
+              "t": "+",
+              "text": "        <artifactId>commons-text</artifactId>"
+            },
+            {
+              "t": "+",
+              "text": "        <version>1.10.0</version>"
+            },
+            {
+              "t": "+",
+              "text": "      </dependency>"
+            },
+            {
+              "t": "+",
+              "text": "    </dependencies>"
+            },
+            {
+              "t": "+",
+              "text": "  </dependencyManagement>"
+            },
+            {
+              "t": " ",
+              "text": "  <dependencies>"
+            },
+            {
+              "t": " ",
+              "text": "    <dependency>"
+            },
+            {
+              "t": " ",
+              "text": "      <groupId>com.example</groupId>"
+            },
+            {
+              "t": " ",
+              "text": "      <artifactId>app</artifactId>"
+            },
+            {
+              "t": " ",
+              "text": "    </dependency>"
+            },
+            {
+              "t": " ",
+              "text": "  </dependencies>"
+            },
+            {
+              "t": " ",
+              "text": "</project>"
+            }
+          ]
+        },
+        {
+          "id": "post-install",
+          "after": "install",
+          "label": "Post-install",
+          "file": "dependency-tree.txt",
+          "kind": "digest",
+          "changed": 1,
+          "digest": "6c8f9f6efc176fa2",
+          "diff": []
+        },
+        {
+          "id": "post-build",
+          "after": "build",
+          "label": "Post-build",
+          "file": "dist/",
+          "kind": "digest",
+          "changed": 0,
+          "digest": "49ff1e5da19c743f",
+          "diff": []
+        }
+      ],
+      "manifest": {
+        "file": "pom.xml",
+        "before": "<project>\n  <artifactId>blocked-repo</artifactId>\n  <dependencies>\n    <dependency>\n      <groupId>com.example</groupId>\n      <artifactId>app</artifactId>\n    </dependency>\n  </dependencies>\n</project>",
+        "after": "<project>\n  <artifactId>blocked-repo</artifactId>\n  <dependencyManagement>\n    <dependencies>\n      <dependency>\n        <artifactId>commons-text</artifactId>\n        <version>1.10.0</version>\n      </dependency>\n    </dependencies>\n  </dependencyManagement>\n  <dependencies>\n    <dependency>\n      <groupId>com.example</groupId>\n      <artifactId>app</artifactId>\n    </dependency>\n  </dependencies>\n</project>"
+      },
+      "nodes": [
+        {
+          "id": "com.example:blocked-app:1.0.0",
+          "name": "com.example:blocked-app",
+          "version": "1.0.0",
+          "depth": 0,
+          "vuln": null,
+          "isRoot": true
+        },
+        {
+          "id": "org.apache.commons:commons-text:1.9",
+          "name": "org.apache.commons:commons-text",
+          "version": "1.9",
+          "depth": 1,
+          "vuln": {
+            "pkg": "org.apache.commons:commons-text",
+            "sev": "critical",
+            "cve": "CVE-2022-42889",
+            "scope": "direct",
+            "from": "1.9",
+            "to": "1.10.0",
+            "tool": "maven-version-bump",
+            "action": "direct-bump"
+          },
+          "isRoot": false
+        },
+        {
+          "id": "org.apache.commons:commons-lang3:3.12.0",
+          "name": "org.apache.commons:commons-lang3",
+          "version": "3.12.0",
+          "depth": 2,
+          "vuln": null,
+          "isRoot": false
+        }
+      ],
+      "logs": [
+        {
+          "t": "14:02:00.287",
+          "stage": "clone",
+          "level": "cmd",
+          "msg": "git clone --depth 1 https://github.com/o/blocked-repo.git"
+        },
+        {
+          "t": "14:02:00.473",
+          "stage": "clone",
+          "level": "ok",
+          "msg": "HEAD is now at 621701c (main)"
+        },
+        {
+          "t": "14:02:00.722",
+          "stage": "remediate",
+          "level": "cmd",
+          "msg": "skill maven-remediation --repo blocked-repo"
+        },
+        {
+          "t": "14:02:00.974",
+          "stage": "remediate",
+          "level": "info",
+          "msg": "maven-version-bump: org.apache.commons:commons-text 1.9 → 1.10.0"
+        },
+        {
+          "t": "14:02:01.185",
+          "stage": "remediate",
+          "level": "ok",
+          "msg": "direct-bump applied (CVE-2022-42889)"
+        },
+        {
+          "t": "14:02:01.497",
+          "stage": "install",
+          "level": "cmd",
+          "msg": "mvn -B -q dependency:go-offline"
+        },
+        {
+          "t": "14:02:01.648",
+          "stage": "install",
+          "level": "error",
+          "msg": "install-verify: failed — resolved org.apache.commons:commons-text@1.10.0"
+        },
+        {
+          "t": "14:02:01.759",
+          "stage": "build",
+          "level": "warn",
+          "msg": "build: not applicable — no build script declared (stage not exercised)"
+        },
+        {
+          "t": "14:02:01.800",
+          "stage": "test",
+          "level": "warn",
+          "msg": "test: not applicable — no test stage was grounded (stage not exercised)"
+        },
+        {
+          "t": "14:02:02.015",
+          "stage": "validate",
+          "level": "cmd",
+          "msg": "audit --ecosystem java --fail-on high"
+        },
+        {
+          "t": "14:02:02.372",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "CVE-2022-42889 — resolved 1.10.0 satisfies first-patched"
+        },
+        {
+          "t": "14:02:02.586",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "0 fixed · 0 broken · 1 blocked"
+        }
+      ],
+      "ledger": {
+        "fixed": 0,
+        "broken": 0,
+        "blocked": 1,
+        "skipped": 0,
+        "bug": 0
+      },
+      "inventory": {
+        "packages": [
+          {
+            "name": "com.example:blocked-app",
+            "versions": [
+              "1.0.0"
+            ],
+            "unresolved": false,
+            "dependents": [],
+            "conflict": false,
+            "root": true
+          },
+          {
+            "name": "org.apache.commons:commons-lang3",
+            "versions": [
+              "3.12.0"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "org.apache.commons:commons-text:1.9"
+            ],
+            "conflict": false,
+            "root": false
+          },
+          {
+            "name": "org.apache.commons:commons-text",
+            "versions": [
+              "1.9"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "com.example:blocked-app:1.0.0"
+            ],
+            "conflict": false,
+            "root": false
+          }
+        ],
+        "graphed": true
+      },
+      "meta": {
+        "branch": "main",
+        "commit": "621701c",
+        "license": "n/a",
+        "loc": 847,
+        "manifest": "pom.xml",
+        "lock": "dependency-tree.txt",
+        "cloneMs": 1558,
+        "sizeKb": 3504,
+        "contributors": 9,
+        "lastCommit": "2026-06-10"
+      }
+    },
+    {
+      "key": "na-build",
+      "url": "https://github.com/o/na-build",
+      "eco": "node",
+      "branch": "main",
+      "license": "n/a",
+      "loc": 1089,
+      "vulns": [
+        {
+          "pkg": "tar",
+          "sev": "low",
+          "cve": "CVE-2021-37713",
+          "scope": "transitive",
+          "from": "6.1.0",
+          "to": "6.1.11",
+          "tool": "npm-overrides-pin",
+          "action": "overrides-pin"
+        }
+      ],
+      "actionCount": 1,
+      "reps": [
+        {
+          "repo": "https://github.com/o/na-build",
+          "package": "tar",
+          "applied": true,
+          "from": "6.1.0",
+          "to": "6.1.11",
+          "source": "dataset",
+          "strategy": "transitive-pin",
+          "tool": "npm-overrides-pin",
+          "pinnedIn": "package.json",
+          "bump": "patch"
+        }
+      ],
+      "prompt": "Remediate na-build",
+      "promptSource": "deterministic",
+      "skill": "npm-remediation",
+      "tools": [],
+      "cloneError": null,
+      "overall": "clean",
+      "outcomes": {
+        "fixed": 1,
+        "broken": 0,
+        "blocked": 0,
+        "skipped": 0,
+        "bug": 0
+      },
+      "diagnoses": [],
+      "edges": [
+        [
+          "na-build-app@0.3.0",
+          "tar@6.1.0"
+        ],
+        [
+          "tar@6.1.0",
+          "semver@7.3.0"
+        ],
+        [
+          "na-build-app@0.3.0",
+          "semver@7.5.4"
+        ]
+      ],
+      "dgNodes": [
+        {
+          "id": "na-build-app@0.3.0",
+          "name": "na-build-app",
+          "version": "0.3.0"
+        },
+        {
+          "id": "tar@6.1.0",
+          "name": "tar",
+          "version": "6.1.0"
+        },
+        {
+          "id": "semver@7.3.0",
+          "name": "semver",
+          "version": "7.3.0"
+        },
+        {
+          "id": "semver@7.5.4",
+          "name": "semver",
+          "version": "7.5.4"
+        }
+      ],
+      "stages": [
+        {
+          "name": "clone",
+          "status": "ok",
+          "duration": 2849
+        },
+        {
+          "name": "remediate",
+          "status": "ok",
+          "duration": 2682
+        },
+        {
+          "name": "install",
+          "status": "ok",
+          "duration": 19677
+        },
+        {
+          "name": "build",
+          "status": "na",
+          "duration": 9427
+        },
+        {
+          "name": "test",
+          "status": "na",
+          "duration": 3599
+        },
+        {
+          "name": "validate",
+          "status": "ok",
+          "duration": 547
+        }
+      ],
+      "id": "na-build",
+      "snapshots": [
+        {
+          "id": "pre-remediate",
+          "after": "remediate",
+          "label": "Pre-remediate",
+          "file": "package.json",
+          "kind": "diff",
+          "before": "{\n  \"name\": \"na-build\",\n  \"version\": \"1.0.0\"\n}",
+          "next": "{\n  \"name\": \"na-build\",\n  \"version\": \"1.0.0\"\n}",
+          "changed": 0,
+          "digest": "80f7adfb88e62539",
+          "diff": [
+            {
+              "t": " ",
+              "text": "{"
+            },
+            {
+              "t": " ",
+              "text": "  \"name\": \"na-build\","
+            },
+            {
+              "t": " ",
+              "text": "  \"version\": \"1.0.0\""
+            },
+            {
+              "t": " ",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "post-remediate",
+          "after": "remediate",
+          "label": "Post-remediate",
+          "file": "package.json",
+          "kind": "diff",
+          "before": "{\n  \"name\": \"na-build\",\n  \"version\": \"1.0.0\"\n}",
+          "next": "{\n  \"name\": \"na-build\",\n  \"version\": \"1.0.0\",\n  \"overrides\": {\n    \"tar\": \"6.1.11\"\n  }\n}",
+          "changed": 1,
+          "digest": "0fc2605af0fd5586",
+          "diff": [
+            {
+              "t": " ",
+              "text": "{"
+            },
+            {
+              "t": " ",
+              "text": "  \"name\": \"na-build\","
+            },
+            {
+              "t": "-",
+              "text": "  \"version\": \"1.0.0\""
+            },
+            {
+              "t": "+",
+              "text": "  \"version\": \"1.0.0\","
+            },
+            {
+              "t": "+",
+              "text": "  \"overrides\": {"
+            },
+            {
+              "t": "+",
+              "text": "    \"tar\": \"6.1.11\""
+            },
+            {
+              "t": "+",
+              "text": "  }"
+            },
+            {
+              "t": " ",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "post-install",
+          "after": "install",
+          "label": "Post-install",
+          "file": "package-lock.json",
+          "kind": "digest",
+          "changed": 1,
+          "digest": "771f9c4dbbc2e76f",
+          "diff": []
+        },
+        {
+          "id": "post-build",
+          "after": "build",
+          "label": "Post-build",
+          "file": "dist/",
+          "kind": "digest",
+          "changed": 0,
+          "digest": "1d15120e3e2c0fc2",
+          "diff": []
+        }
+      ],
+      "manifest": {
+        "file": "package.json",
+        "before": "{\n  \"name\": \"na-build\",\n  \"version\": \"1.0.0\"\n}",
+        "after": "{\n  \"name\": \"na-build\",\n  \"version\": \"1.0.0\",\n  \"overrides\": {\n    \"tar\": \"6.1.11\"\n  }\n}"
+      },
+      "nodes": [
+        {
+          "id": "na-build-app@0.3.0",
+          "name": "na-build-app",
+          "version": "0.3.0",
+          "depth": 0,
+          "vuln": null,
+          "isRoot": true
+        },
+        {
+          "id": "tar@6.1.0",
+          "name": "tar",
+          "version": "6.1.0",
+          "depth": 1,
+          "vuln": {
+            "pkg": "tar",
+            "sev": "low",
+            "cve": "CVE-2021-37713",
+            "scope": "transitive",
+            "from": "6.1.0",
+            "to": "6.1.11",
+            "tool": "npm-overrides-pin",
+            "action": "overrides-pin"
+          },
+          "isRoot": false
+        },
+        {
+          "id": "semver@7.3.0",
+          "name": "semver",
+          "version": "7.3.0",
+          "depth": 2,
+          "vuln": null,
+          "isRoot": false
+        },
+        {
+          "id": "semver@7.5.4",
+          "name": "semver",
+          "version": "7.5.4",
+          "depth": 1,
+          "vuln": null,
+          "isRoot": false
+        }
+      ],
+      "logs": [
+        {
+          "t": "14:02:00.126",
+          "stage": "clone",
+          "level": "cmd",
+          "msg": "git clone --depth 1 https://github.com/o/na-build.git"
+        },
+        {
+          "t": "14:02:00.243",
+          "stage": "clone",
+          "level": "ok",
+          "msg": "HEAD is now at f0af460 (main)"
+        },
+        {
+          "t": "14:02:00.390",
+          "stage": "remediate",
+          "level": "cmd",
+          "msg": "skill npm-remediation --repo na-build"
+        },
+        {
+          "t": "14:02:00.507",
+          "stage": "remediate",
+          "level": "info",
+          "msg": "npm-overrides-pin: tar 6.1.0 → 6.1.11"
+        },
+        {
+          "t": "14:02:00.638",
+          "stage": "remediate",
+          "level": "ok",
+          "msg": "overrides-pin applied (CVE-2021-37713)"
+        },
+        {
+          "t": "14:02:00.768",
+          "stage": "install",
+          "level": "cmd",
+          "msg": "npm install --no-audit --no-fund"
+        },
+        {
+          "t": "14:02:00.880",
+          "stage": "install",
+          "level": "ok",
+          "msg": "install-verify: ok — resolved tar@6.1.11"
+        },
+        {
+          "t": "14:02:01.249",
+          "stage": "build",
+          "level": "warn",
+          "msg": "build: not applicable — no build script declared (stage not exercised)"
+        },
+        {
+          "t": "14:02:01.384",
+          "stage": "test",
+          "level": "warn",
+          "msg": "test: not applicable — no test stage was grounded (stage not exercised)"
+        },
+        {
+          "t": "14:02:01.566",
+          "stage": "validate",
+          "level": "cmd",
+          "msg": "audit --ecosystem node --fail-on high"
+        },
+        {
+          "t": "14:02:01.775",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "CVE-2021-37713 — resolved 6.1.11 satisfies first-patched"
+        },
+        {
+          "t": "14:02:01.908",
+          "stage": "validate",
+          "level": "ok",
+          "msg": "1 fixed · 0 broken · 0 blocked"
+        }
+      ],
+      "ledger": {
+        "fixed": 1,
+        "broken": 0,
+        "blocked": 0,
+        "skipped": 0,
+        "bug": 0
+      },
+      "inventory": {
+        "packages": [
+          {
+            "name": "na-build-app",
+            "versions": [
+              "0.3.0"
+            ],
+            "unresolved": false,
+            "dependents": [],
+            "conflict": false,
+            "root": true
+          },
+          {
+            "name": "semver",
+            "versions": [
+              "7.3.0",
+              "7.5.4"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "na-build-app@0.3.0",
+              "tar@6.1.0"
+            ],
+            "conflict": true,
+            "root": false
+          },
+          {
+            "name": "tar",
+            "versions": [
+              "6.1.0"
+            ],
+            "unresolved": false,
+            "dependents": [
+              "na-build-app@0.3.0"
+            ],
+            "conflict": false,
+            "root": false
+          }
+        ],
+        "graphed": true
+      },
+      "meta": {
+        "branch": "main",
+        "commit": "f0af460",
+        "license": "n/a",
+        "loc": 1089,
+        "manifest": "package.json",
+        "lock": "package-lock.json",
+        "cloneMs": 1435,
+        "sizeKb": 5364,
+        "contributors": 4,
+        "lastCommit": "2026-05-22"
+      }
+    }
+  ],
+  "totals": {
+    "repos": 5,
+    "vulns": 6,
+    "actions": 7,
+    "fixed": 3,
+    "broken": 1,
+    "blocked": 1,
+    "skipped": 1,
+    "bug": 0,
+    "sev": {
+      "high": 2,
+      "critical": 2,
+      "medium": 1,
+      "low": 1
+    }
+  },
+  "decided": 4,
+  "passRate": 75,
+  "rowsN": 5,
+  "environment": {
+    "degraded": true,
+    "services": [
+      {
+        "id": "docker",
+        "status": "down",
+        "detail": "Cannot connect to the Docker daemon. Is the docker daemon running?",
+        "remedy": "Start Docker Desktop, then re-run."
+      },
+      {
+        "id": "devpi",
+        "status": "unreachable",
+        "detail": "devpi — connection refused at http://localhost:3141",
+        "remedy": "The local registries run in Docker. Start Docker Desktop and the Verdaccio/devpi containers, then re-run."
+      }
+    ],
+    "remedies": [
+      "Start Docker Desktop, then re-run.",
+      "The local registries run in Docker. Start Docker Desktop and the Verdaccio/devpi containers, then re-run."
+    ],
+    "blocked": 1,
+    "codeAttributable": 1
+  }
+}

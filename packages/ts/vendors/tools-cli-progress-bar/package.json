@@ -1,0 +1,37 @@
+{
+  "name": "@internal/tools-cli-progress-bar",
+  "version": "1.0.2",
+  "description": "Advanced CLI Progress Bar System with Strategy Pattern Architecture",
+  "main": "main.mjs",
+  "type": "module",
+  "bin": {
+    "progress-demo": "./main.mjs"
+  },
+  "scripts": {
+    "start": "node main.mjs",
+    "demo": "node main.mjs",
+    "test": "node --test",
+    "lint": "echo 'Add ESLint configuration'",
+    "dev": "node --watch main.mjs",
+    "npmPublish": "npm publish --access public"
+  },
+  "keywords": [
+    "cli",
+    "progress",
+    "terminal",
+    "nodejs",
+    "strategy-pattern",
+    "architecture"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "your-repo-url"
+  }
+}

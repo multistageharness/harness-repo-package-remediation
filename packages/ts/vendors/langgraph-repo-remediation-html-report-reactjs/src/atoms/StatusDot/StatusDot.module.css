@@ -1,0 +1,12 @@
+.dot {
+  display: inline-block;
+  height: 0.375rem;
+  width: 0.375rem;
+  border-radius: 9999px;
+  background: #cbd5e1;
+}
+.ok { background: #10b981; }
+.failed { background: #f43f5e; }
+.blocked { background: #f59e0b; }
+.skipped { background: #cbd5e1; }
+.na { background: #e2e8f0; }

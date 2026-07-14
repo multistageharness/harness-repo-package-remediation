@@ -1,0 +1,30 @@
+# java ecosystem TEST playbook (capability 1). Maven runs the surefire test
+# phase; a module with no tests still exits 0. The gradle lane prefers the
+# wrapper; both record their exit code (allowNonZero). `{{module.manifest}}`
+# points maven at the module's own pom.
+ecosystem: java
+toolchains:
+  maven:
+    - tool: mvn-test
+      argv: ["mvn", "-B", "-f", "{{module.manifest}}", "test"]
+      guard: mvn
+      artifact: mvn-test.log
+      allowNonZero: true
+  gradle:
+    - tool: gradlew-test
+      argv: ["./gradlew", "test"]
+      guard: ./gradlew
+      artifact: gradlew-test.log
+      allowNonZero: true
+      fallback:
+        tool: gradle-test
+        argv: ["gradle", "test"]
+        guard: gradle
+        artifact: gradle-test.log
+        allowNonZero: true
+  default:
+    - tool: mvn-test
+      argv: ["mvn", "-B", "test"]
+      guard: mvn
+      artifact: mvn-test.log
+      allowNonZero: true

@@ -1,0 +1,93 @@
+# LIN archetype + the offline knowledge lane: load → chunk → embed → index →
+# retrieve → grounded answer → report artifact. (excel-data-navigator /
+# cross-repo-semantic-indexer lineage, fully declarative.)
+version: 100
+name: linear-rag
+description: Linear RAG pipeline over the local knowledge corpus with a grounded answer and report.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+env:
+  - { name: ANSWER_MODEL, default: mock-model }
+
+state:
+  question:      { type: string, default: "Which topology archetypes does langgraph-langchain-harness cover?" }
+  report_title:  { type: string, default: "" }
+  docs:          { type: array, default: [] }
+  chunks:        { type: array, default: [] }
+  embedded:      { type: array, default: [] }
+  index_info:    { type: object, default: {} }
+  retrieved:     { type: array, default: [] }
+  answer:        { type: string, default: "" }
+  report_result: { type: object, default: {} }
+
+entry: title
+
+nodes:
+  - id: title
+    uses: nodes.passthrough
+    with: { set: { report_title: "linear-rag run report" } }
+    writes: [report_title]
+
+  - id: load_docs
+    uses: knowledge.loadDocuments
+    with: { source: "../knowledge", into: docs }
+    writes: [docs]
+
+  - id: chunk_docs
+    uses: knowledge.chunk
+    with: { from: docs, into: chunks, size: 400, overlap: 40 }
+    reads: [docs]
+    writes: [chunks]
+
+  - id: embed_chunks
+    uses: knowledge.embed
+    with: { from: chunks, into: embedded }
+    reads: [chunks]
+    writes: [embedded]
+
+  - id: build_index
+    uses: knowledge.vectorStore
+    with: { from: embedded, store: corpus, into: index_info }
+    reads: [embedded]
+    writes: [index_info]
+
+  - id: fetch_context
+    uses: knowledge.retrieve
+    with: { store: corpus, query_from: question, top_k: 3, into: retrieved }
+    reads: [question]
+    writes: [retrieved]
+
+  - id: answer_question
+    uses: skills.generate
+    with:
+      model: ${ANSWER_MODEL}
+      prompt: "../prompts/answer_with_context.md"
+      input: { question: question, context: retrieved }
+      out: answer
+    reads: [question, retrieved]
+    writes: [answer]
+
+  - id: render
+    uses: commands.renderReport
+    with:
+      template: "../templates/pipeline_report.md.hbs"
+      out_dir: "../../.runs/out"
+      filename: "linear-rag-report.md"
+      format: markdown
+      into: report_result
+    reads: [answer]
+    writes: [report_result]
+
+edges:
+  - { from: title, to: load_docs }
+  - { from: load_docs, to: chunk_docs }
+  - { from: chunk_docs, to: embed_chunks }
+  - { from: embed_chunks, to: build_index }
+  - { from: build_index, to: fetch_context }
+  - { from: fetch_context, to: answer_question }
+  - { from: answer_question, to: render }
+  - { from: render, to: END }

@@ -1,0 +1,31 @@
+.page {
+  min-height: 100%;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'DejaVu Sans', sans-serif;
+}
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 1rem;
+}
+.title { margin: 0; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.025em; }
+.subtitle { margin: 0.375rem 0 0; font-size: 0.875rem; color: #64748b; }
+.headerRight { display: flex; flex-direction: column; align-items: center; gap: 0.375rem; }
+.rateNote { margin: 0; max-width: 12rem; text-align: center; font-size: 0.6875rem; color: #94a3b8; }
+
+.toolbar {
+  display: flex; align-items: center; gap: 1rem;
+  max-width: 80rem; margin: 0 auto; padding: 0.5rem 1.5rem 1rem;
+}
+.back {
+  border: 0; background: transparent; cursor: pointer;
+  font-size: 0.75rem; font-weight: 500; color: #4f46e5;
+}
+.main { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem 2rem; }
+.footer { max-width: 80rem; margin: 0 auto; padding: 0.5rem 1.5rem 2.5rem; }
+.footer p { margin: 0; font-size: 0.75rem; color: #94a3b8; }

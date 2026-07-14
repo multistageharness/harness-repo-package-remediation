@@ -1,0 +1,17 @@
+{
+  "name": "@repo-snapshots/tool",
+  "version": "1.0.0",
+  "description": "Dependency-free ESM repo filesystem-snapshot library — walk a cloned repo's tracked files (git ls-files, fs-walk fallback) and emit a deterministic basename→paths .snapshot.json with an optional collision index.",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "files": ["index.mjs"],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,11 @@
+# golang ecosystem installation playbook (0026/D2). `go mod download` fills the
+# module cache from the location's go.mod; cwd is the install location.
+ecosystem: golang
+toolchains:
+  go: &go_steps
+    - tool: go-mod-download
+      argv: ["go", "mod", "download"]
+      guard: go
+      artifact: go-mod-download.log
+      allowNonZero: true
+  default: *go_steps

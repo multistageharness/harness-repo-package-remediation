@@ -1,0 +1,14 @@
+{
+  "id": "poetry-find-next-version",
+  "ecosystem": "python",
+  "packageManager": "poetry",
+  "kind": "version-discovery",
+  "versioning": "pep440",
+  "title": "poetry next-available version finder",
+  "description": "Same PyPI datasource and PEP 440-style ranking as the pip finder, install-tested through poetry's solver (dry-run add against a scratch pyproject.toml) — surfaces solver-level conflicts pip's dry-run misses.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["pyproject.toml"],
+  "argv_template": ["poetry", "add", "{{package}}@{{version}}", "--dry-run"],
+  "produces": ["installation_report.json"],
+  "safety": "dry-run against a scratch pyproject.toml, never the target repo; mock runs are synthetic — zero network, zero subprocess"
+}

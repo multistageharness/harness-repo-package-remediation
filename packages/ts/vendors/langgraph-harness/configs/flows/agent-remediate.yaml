@@ -1,0 +1,56 @@
+# AGENT archetype: a bounded reason→act→observe loop in one node. The
+# agent's action space is REGISTERED command atoms only (argv shell +
+# read-only listing here), with the dual max_attempts + deadline_s failsafe.
+# (autonomous-remediation-loop lineage.)
+version: 100
+name: agent-remediate
+description: Bounded agent investigates an issue using registered command tools, then reports.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  issue:        { type: string, default: "The knowledge corpus may be missing an operations doc — verify and report." }
+  agent_result: { type: object, default: {} }
+  published:    { type: object, default: {} }
+
+entry: investigate
+
+nodes:
+  - id: investigate
+    uses: nodes.agent
+    with:
+      system: "You are a repo investigator. Use tools to gather evidence, then finish with a clear answer."
+      goal_from: issue
+      max_attempts: 4
+      deadline_s: 60
+      tools:
+        - name: list_docs
+          uses: commands.fsList
+          with: { dir: "../knowledge", ext: ".md", into: observed_files }
+          description: "List the markdown docs in the knowledge corpus."
+        - name: node_version
+          uses: commands.shell
+          with: { argv: ["node", "--version"], into: observed_version }
+          description: "Check the runtime version."
+      out: agent_result
+    reads: [issue]
+    writes: [agent_result]
+
+  - id: publish
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [issue, agent_result] }
+      out_dir: "../../.runs/out"
+      filename: "agent-remediation.json"
+      format: json
+      into: published
+    reads: [agent_result]
+    writes: [published]
+
+edges:
+  - { from: investigate, to: publish }
+  - { from: publish, to: END }

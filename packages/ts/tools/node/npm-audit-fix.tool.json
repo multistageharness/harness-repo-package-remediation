@@ -1,0 +1,12 @@
+{
+  "id": "npm-audit-fix",
+  "ecosystem": "node",
+  "kind": "remediation",
+  "title": "npm audit fix",
+  "description": "Let npm resolve and apply compatible security fixes for the dependency tree.",
+  "capabilities": ["bulk-fix", "advisory-driven"],
+  "manifests": ["package.json", "package-lock.json"],
+  "argv_template": ["npm", "audit", "fix"],
+  "produces": ["package.json", "package-lock.json"],
+  "safety": "non-breaking by default; --force is never used"
+}

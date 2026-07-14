@@ -1,0 +1,14 @@
+{
+  "id": "uv-find-next-version",
+  "ecosystem": "python",
+  "packageManager": "uv",
+  "kind": "version-discovery",
+  "versioning": "pep440",
+  "title": "uv next-available version finder",
+  "description": "Same PyPI datasource and PEP 440-style ranking as the pip finder, install-tested through uv's much faster resolver (uv pip install --dry-run) — cheap test-all reports over many candidates.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["pyproject.toml", "requirements.txt"],
+  "argv_template": ["uv", "pip", "install", "{{package}}=={{version}}", "--dry-run"],
+  "produces": ["installation_report.json"],
+  "safety": "dry-run resolve only — no environment mutation; mock runs are synthetic — zero network, zero subprocess"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "npm-version-bump",
+  "ecosystem": "node",
+  "kind": "remediation",
+  "title": "npm dependency version bump",
+  "description": "Bump a directly-declared npm dependency to a fixed patched version in package.json, formatting-preserving and in place.",
+  "capabilities": ["direct-bump", "manifest-edit"],
+  "manifests": ["package.json"],
+  "argv_template": ["npm", "install", "{{package}}@{{version}}", "--save-exact"],
+  "produces": ["package.json", "package-lock.json"],
+  "safety": "single-token in-place edit via ecosystem-registry bump; lockfile regen deferred (Epic 03 scope)"
+}

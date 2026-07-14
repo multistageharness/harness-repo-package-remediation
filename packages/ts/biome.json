@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/coverage",
+      "!**/.harness",
+      "!vendors/langgraph-harness",
+      "!vendors/repository-fingerprint",
+      "!vendors/tools-cli-progress-bar",
+      "!vendors/claude-sdk",
+      "!vendors/github-sdk",
+      "!vendors/langgraph-repo-remediation-html-report-generator/test/fixtures/golden-report.html",
+      "!vendors/langgraph-repo-remediation-html-report-reactjs/dev/mock/styles.css",
+      "!vendors/langgraph-repo-remediation-html-report-generator/vendor"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  },
+  "overrides": [
+    {
+      "includes": [
+        "vendors/langgraph-harness-integration/configs/patterns/sanitize-untrusted.mjs"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noControlCharactersInRegex": "off"
+          }
+        }
+      }
+    }
+  ]
+}

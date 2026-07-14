@@ -1,0 +1,12 @@
+# golang ecosystem BUILD playbook (0029/D1). `go build ./...` compiles every
+# package under the location; cwd is the install location, the module cache was
+# filled by the step-10 install (`go mod download`).
+ecosystem: golang
+toolchains:
+  go: &go_build_steps
+    - tool: go-build
+      argv: ["go", "build", "./..."]
+      guard: go
+      artifact: go-build.log
+      allowNonZero: true
+  default: *go_build_steps

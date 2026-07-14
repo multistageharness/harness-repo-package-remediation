@@ -1,0 +1,15 @@
+# {{report_title}}
+
+## Answer
+{{answer}}
+
+## Retrieved context
+{{#each retrieved}}
+- `{{id}}` (score {{score}})
+{{/each}}
+
+## Run diagnostics
+- last step: {{last_step}}
+{{#each error_logs}}
+- {{.}}
+{{/each}}

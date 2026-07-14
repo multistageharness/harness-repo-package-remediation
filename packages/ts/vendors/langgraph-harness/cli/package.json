@@ -1,0 +1,19 @@
+{
+  "name": "@internal/langgraph-langchain-harness-cli",
+  "version": "100.0.0",
+  "type": "module",
+  "description": "langgraph-langchain-harness CLI — validate / compile / run / list / patterns / graph over the langgraph-langchain-harness SDK.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "langgraph-langchain-harness": "src/main.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@internal/langgraph-langchain-harness-sdk": "100.0.0"
+  }
+}

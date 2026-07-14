@@ -1,0 +1,40 @@
+{
+  "$comment": [
+    "Template for harness-repo-package-remediation/harness.config.json (gitignored — copy this file, don't edit it).",
+    "The LLM toggle, resolved as: defaults < this file < environment < flow param.",
+    "Default with no file and no env: provider 'mock' — offline, deterministic, no key.",
+    "provider: mock | anthropic | openai | claude-sdk | github-sdk.",
+    "  mock/anthropic/openai are the vendored platform's own raw-fetch lane.",
+    "  claude-sdk/github-sdk are the vendored SDKs at harness-repo-package-remediation/vendors/{claude-sdk,github-sdk}",
+    "  (symlinks to a sibling checkout — run `npm install` in the SDK's own root first).",
+    "CREDENTIALS ARE NOT CONFIGURED HERE. Each SDK reads its own from the environment at",
+    "the seam (ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN for claude-sdk; the Copilot SDK",
+    "resolves its own), so a key never lands in a config file, a flow, a log, or a commit.",
+    "A requested SDK that cannot be constructed ABORTS the run rather than silently",
+    "degrading to mock; set allowMockFallback (or HARNESS_ALLOW_MOCK_FALLBACK=1) to opt out."
+  ],
+  "$services_comment": [
+    "Optional: the services the flow's health probe checks up front (plan run-health-and-errors-log).",
+    "Unset ⇒ the built-in default [docker, verdaccio, devpi]. Each entry: { id, kind, ..., remedy }.",
+    "kind is a CLOSED strategy set: docker | registry (lane: npm|pip, delegates to the registry",
+    "preflight) | http (origin) | port (host, port). remedy is the sentence a human acts on when",
+    "the service is down — printed verbatim by errors.logs and the CLI exit line.",
+    "A bare { \"id\": \"docker\" } (or the string \"docker\") inherits the built-in definition."
+  ],
+  "services": [
+    { "id": "docker" },
+    { "id": "verdaccio" },
+    { "id": "devpi" }
+  ],
+  "llm": {
+    "provider": "claude-sdk",
+    "model": "claude-opus-4-8",
+    "maxTokens": 16000,
+    "temperature": 0,
+    "reasoningEffort": "low",
+    "maxRetries": 3,
+    "timeout": 60000,
+    "tokenBudget": { "maxTokens": 200000, "enforcement": "warn" },
+    "allowMockFallback": false
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@internal/langgraph-langchain-harness-sdk",
+  "version": "100.0.0",
+  "type": "module",
+  "description": "langgraph-langchain-harness SDK — atomic LangChain/LangGraph pattern files + the yaml -> mapping -> registry -> execute pipeline.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./atoms/*": "./src/atoms/*",
+    "./mapping.default.yaml": "./mapping.default.yaml"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@langchain/core": "1.1.48",
+    "@langchain/langgraph": "1.3.4",
+    "yaml": "2.9.0",
+    "zod": "3.25.76"
+  }
+}

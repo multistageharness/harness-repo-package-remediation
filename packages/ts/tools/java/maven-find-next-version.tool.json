@@ -1,0 +1,14 @@
+{
+  "id": "maven-find-next-version",
+  "ecosystem": "java",
+  "packageManager": "maven",
+  "kind": "version-discovery",
+  "versioning": "maven",
+  "title": "maven next-available version finder",
+  "description": "List the versions Maven Central's maven-metadata.xml advertises for a group:artifact coordinate, rank candidates above the current version by dotted ordering, and resolve-test them via mvn dependency:get (resolves from the repository without a full build) to find the next version that actually resolves.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["pom.xml"],
+  "argv_template": ["mvn", "-B", "dependency:get", "-Dartifact={{package}}:{{version}}"],
+  "produces": ["installation_report.json"],
+  "safety": "dependency:get resolves into the local repository cache only — never the target repo tree; mock runs are synthetic — zero network, zero subprocess"
+}

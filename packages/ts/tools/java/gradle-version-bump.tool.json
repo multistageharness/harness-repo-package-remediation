@@ -1,0 +1,12 @@
+{
+  "id": "gradle-version-bump",
+  "ecosystem": "java",
+  "kind": "remediation",
+  "title": "gradle dependency version bump",
+  "description": "Bump a declared or constrained dependency version in build.gradle / build.gradle.kts.",
+  "capabilities": ["direct-bump", "transitive-pin", "manifest-edit"],
+  "manifests": ["build.gradle", "build.gradle.kts"],
+  "argv_template": ["./gradlew", "dependencies"],
+  "produces": ["build.gradle"],
+  "safety": "constraint / version edit; wrapper preferred over system gradle"
+}

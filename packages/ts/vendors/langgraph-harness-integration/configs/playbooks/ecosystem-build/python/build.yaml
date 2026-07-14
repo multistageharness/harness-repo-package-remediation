@@ -1,0 +1,32 @@
+# python ecosystem BUILD playbook (0029/D1). `python -m build` produces
+# sdist/wheel into dist/; a repo without packaging metadata (no pyproject.toml
+# / setup.py) or without the `build` package installed exits non-zero and is
+# RECORDED (allowNonZero) — degrade, never guess. The uv/poetry lanes use their
+# native build commands. Steps run with cwd at the install location.
+ecosystem: python
+toolchains:
+  pip: &py_build_steps
+    - tool: python-build
+      argv: ["python3", "-m", "build"]
+      guard: python3
+      artifact: python-build.log
+      allowNonZero: true
+      fallback:
+        tool: python-build
+        argv: ["python", "-m", "build"]
+        guard: python
+        artifact: python-build.log
+        allowNonZero: true
+  poetry:
+    - tool: poetry-build
+      argv: ["poetry", "build", "--no-interaction"]
+      guard: poetry
+      artifact: poetry-build.log
+      allowNonZero: true
+  uv:
+    - tool: uv-build
+      argv: ["uv", "build"]
+      guard: uv
+      artifact: uv-build.log
+      allowNonZero: true
+  default: *py_build_steps

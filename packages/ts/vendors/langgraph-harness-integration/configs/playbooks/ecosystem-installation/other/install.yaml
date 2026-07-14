@@ -1,0 +1,6 @@
+# other "playbook" — an EXPLICIT no-op with a stated reason (0026/D2 §5): an
+# undetected / mock-stub ecosystem has no command matrix to run, and guessing
+# one would violate the degrade-never-guess discipline.
+ecosystem: other
+reason: "no install lane — undetected ecosystem, nothing to run"
+toolchains: {}

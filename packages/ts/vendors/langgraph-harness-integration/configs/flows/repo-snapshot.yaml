@@ -1,0 +1,116 @@
+# harness↔langgraph-harness repo-snapshot flow — a SEPARATE archetype (change
+# record 0009/D3): ingest a CSV/XLSX via @harness/sdk, seed the `dataset` spine
+# (rows + original_headers), record a working header subset, normalize + dedup
+# the repo-URL column into `dataset.repos`, fan out to clone each repo into
+# .harness/repos/<slug>, then SNAPSHOT each clone into a per-repo file inventory
+# .harness/repo-snapshots/<repo>.snapshot.json (basename→paths map + optional
+# collision index), and render a deterministic JSON run summary. Mock-first,
+# offline — no network, no key, no git under --mock. The frozen
+# repo-remediation.yaml step chain is untouched; this flow stands beside it like
+# the frozen harness-ingest-classify.yaml sibling. (INGEST + FANOUT archetype.)
+version: 100
+name: repo-snapshot
+description: Ingest rows, pick a remediation subset, dedup repo URLs, clone each repo, and snapshot each clone's tracked filesystem into a per-repo <repo>.snapshot.json under mock.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  # the shared spine every stage reads + writes (langgraph-flow.md steps 3–6)
+  dataset:
+    type: object
+    default:
+      original_headers: []
+      selected_headers: []
+      rows: []
+      repo_column: ""
+      repos: []
+      clone_results: []
+  rows:          { type: array,  default: [] }
+  # {url, clone_url} entries — dedup on `url`, clone `clone_url`. See repo-remediation.yaml.
+  repos:         { type: array,  default: [] }
+  repos_item:    { type: object, default: {} }
+  repos_index:   { type: number, default: 0 }
+  clone_results: { type: array,  default: [], reducer: concat }
+  snapshots:     { type: array,  default: [] }
+  report:        { type: object, default: {} }
+
+entry: ingest
+
+nodes:
+  - id: ingest
+    uses: commands.harnessIngest
+    with: { path: "../../../../fixtures/dependabot-remediation-testcases.csv", out: rows }
+    writes: [rows]
+
+  - id: dataset_init
+    uses: commands.datasetInit
+    with: { rows_from: rows, into: dataset }
+    reads: [rows]
+    writes: [dataset]
+
+  - id: select_headers
+    uses: commands.selectHeaders
+    with:
+      dataset_from: dataset
+      columns: [repo, repo_url, package, severity, recommended_version]
+      into: dataset
+    reads: [dataset]
+    writes: [dataset]
+
+  - id: collect_repos
+    uses: commands.collectRepos
+    with: { dataset_from: dataset, column: repo_url, into: dataset, repos_into: repos }
+    reads: [dataset]
+    writes: [dataset, repos]
+
+  - id: fan
+    uses: nodes.fanout
+    with: { over: repos }
+    reads: [repos]
+
+  # The vendored `commands.gitClone` mirror stays pristine (0019/A1) and only takes
+  # a bare string url, so it cannot read the {url, clone_url} fan-out item. Use the
+  # integration-side replacement it exists to be superseded by — same happy paths,
+  # plus classified failures-as-data and the clone_url/dedup-key split.
+  - id: clone_repo
+    uses: commands.gitCloneClassified
+    with:
+      url_from: repos_item
+      workspace: "../../.harness/repos"
+      on_exist: skip
+      into: clone_results
+    reads: [repos_item]
+    writes: [clone_results]
+
+  - id: snapshot
+    uses: commands.repoSnapshot
+    with:
+      clones_from: clone_results
+      out_dir: "../../.harness/repo-snapshots"
+      into: snapshots
+    reads: [clone_results]
+    writes: [snapshots]
+
+  - id: render
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [dataset, clone_results, snapshots] }
+      out_dir: "../../.runs/out"
+      filename: "repo-snapshot.json"
+      format: json
+      into: report
+    reads: [dataset, clone_results, snapshots]
+    writes: [report]
+
+edges:
+  - { from: ingest, to: dataset_init }
+  - { from: dataset_init, to: select_headers }
+  - { from: select_headers, to: collect_repos }
+  - { from: collect_repos, to: fan }
+  - { from: fan, fanout: { over: repos, to: clone_repo }, then: snapshot }
+  - { from: snapshot, to: render }
+  - { from: render, to: END }

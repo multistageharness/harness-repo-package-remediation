@@ -1,0 +1,27 @@
+# java ecosystem BUILD playbook (0029/D1). Steps run with cwd at the install
+# location, so a rule-1 aggregator root builds once and Maven/Gradle own their
+# internal module fan-out. `-DskipTests` / `-x test`: build compiles and
+# packages; testing is not this stage's job. The gradle lane prefers the
+# repo-local wrapper (guard is cwd-relative) and falls back to `gradle` on
+# PATH — the same discipline as the install playbook (0018 A1 §6).
+ecosystem: java
+toolchains:
+  maven: &maven_build_steps
+    - tool: mvn-package
+      argv: ["mvn", "-B", "package", "-DskipTests"]
+      guard: mvn
+      artifact: mvn-package.log
+      allowNonZero: true
+  gradle:
+    - tool: gradlew-build
+      argv: ["./gradlew", "build", "-x", "test"]
+      guard: "./gradlew"
+      artifact: gradle-build.log
+      allowNonZero: true
+      fallback:
+        tool: gradle-build
+        argv: ["gradle", "build", "-x", "test"]
+        guard: gradle
+        artifact: gradle-build.log
+        allowNonZero: true
+  default: *maven_build_steps

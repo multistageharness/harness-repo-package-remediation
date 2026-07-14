@@ -1,0 +1,28 @@
+{
+  "name": "@internal/langgraph-langchain-harness",
+  "version": "100.0.0",
+  "private": true,
+  "type": "module",
+  "description": "langgraph-langchain-harness — enterprise config-driven LangChain + LangGraph platform: atomic pattern files (prompt/template/skills/commands/knowledge/nodes/edges/condition/checkpoints) wired by a yaml -> mapping -> registry -> execute pipeline, shipped as sdk + backend + cli + frontend.",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "sdk",
+    "backend",
+    "cli",
+    "frontend"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "test:sdk": "npm run test --workspace sdk",
+    "test:backend": "npm run test --workspace backend",
+    "test:cli": "npm run test --workspace cli",
+    "test:frontend": "npm run test --workspace frontend",
+    "build": "npm run build --workspaces --if-present",
+    "serve": "npm run start --workspace backend",
+    "run-examples": "node sdk/tools/run-examples.mjs",
+    "docs": "node sdk/tools/docgen.mjs",
+    "verify": "npm test && npm run run-examples && npm run docs"
+  }
+}

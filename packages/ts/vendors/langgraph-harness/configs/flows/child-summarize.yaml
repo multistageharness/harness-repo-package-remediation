@@ -1,0 +1,31 @@
+# The child flow embedded by subgraph-parent.yaml — a minimal LIN flow that
+# turns `text` into `summary`. Compiled through the same pipeline as any
+# other flow; the parent maps channels in and out.
+version: 100
+name: child-summarize
+description: Child flow — summarize the text channel into the summary channel.
+
+runtime:
+  recursion_limit: 10
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  text:    { type: string, default: "" }
+  summary: { type: string, default: "" }
+
+entry: sum
+
+nodes:
+  - id: sum
+    uses: nodes.llm
+    with:
+      system: "Summarize in two sentences."
+      user: "{{text}}"
+      input: { text: text }
+      out: summary
+    reads: [text]
+    writes: [summary]
+
+edges:
+  - { from: sum, to: END }

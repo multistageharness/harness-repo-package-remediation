@@ -1,0 +1,39 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.label {
+  width: 4rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: capitalize;
+}
+.track {
+  flex: 1;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+.bar {
+  height: 100%;
+  border-radius: 9999px;
+}
+.count {
+  width: 1.5rem;
+  text-align: right;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+.critical { background: #e11d48; }
+.high { background: #f97316; }
+.medium { background: #f59e0b; }
+.low { background: #94a3b8; }

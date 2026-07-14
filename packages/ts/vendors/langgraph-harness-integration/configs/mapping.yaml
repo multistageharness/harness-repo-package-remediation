@@ -1,0 +1,103 @@
+# harness↔langgraph-harness integration mapping — layers the harness ingest atom over the
+# SDK's built-in mapping (extends: default). Custom pattern modules must live
+# INSIDE this directory subtree (langgraph-harness trust boundary — `../` escapes and
+# non-`@internal/langgraph-langchain-harness-` bare specifiers are rejected at load).
+version: 100
+extends: default
+patterns:
+  # ingest a CSV/XLSX file — or an in-memory fetched body (0021/D2) — into normalized rows via @harness/sdk
+  commands.harnessIngest: { module: "./patterns/harness-ingest.mjs", export: harnessIngest }
+  # step 2 ingest sub-langgraph lanes (0021/D1–D4) — the router dispatches on `ingest_source`
+  # zero-trust neutralization of untrusted external text (security rule 1/2) — gates the remote_csv lane
+  commands.sanitizeUntrusted: { module: "./patterns/sanitize-untrusted.mjs", export: sanitizeUntrusted }
+  # one local dir / remote URL → a single-row {repo, repo_url} dataset (0021/D3)
+  commands.repoRowSynthesize: { module: "./patterns/repo-row-synthesize.mjs", export: repoRowSynthesize }
+  # placeholder lanes (0021/D4) — routing skeleton now, acquisition later
+  commands.ingestPreset: { module: "./patterns/ingest-preset.mjs", export: ingestPreset }
+  commands.ingestDependabot: { module: "./patterns/ingest-dependabot.mjs", export: ingestDependabot }
+  # the router's `default` lane — an unknown source fails loudly, never empty-but-green (0021/D1)
+  commands.ingestUnknownSource: { module: "./patterns/ingest-unknown-source.mjs", export: ingestUnknownSource }
+  # seed the dataset spine from ingested rows (rows + original_headers)
+  commands.datasetInit: { module: "./patterns/dataset-init.mjs", export: datasetInit }
+  # record the chosen remediation subset in dataset.selected_headers
+  commands.selectHeaders: { module: "./patterns/select-headers.mjs", export: selectHeaders }
+  # normalize + dedup the repo column into dataset.repos (+ flat channel)
+  commands.collectRepos: { module: "./patterns/collect-repos.mjs", export: collectRepos }
+  # git clone with classified failure shapes (bounded transient retry, never throws) — 0019/A1
+  commands.gitCloneClassified: { module: "./patterns/git-clone-classified.mjs", export: gitCloneClassified }
+  # fingerprint each cloned repo dir (bash presence-scanner) → fingerprints channel
+  commands.repoFingerprint: { module: "./patterns/repo-fingerprint.mjs", export: repoFingerprint }
+  # resolve each row's dependency_scope + manifest_path — supplied wins, absent derives
+  # from the clone's manifests, underivable blocks (never guessed) — 0065/D1
+  commands.resolveDatasource: { module: "./patterns/resolve-datasource.mjs", export: resolveDatasource }
+  # LLM-scan each fingerprinted repo (via ctx.llm, zero-trust excerpts) → integrated manifests
+  skills.detectSetup: { module: "./patterns/detect-setup.mjs", export: detectSetup }
+  # snapshot each cloned repo dir (mjs file-inventory tool) → one <repo>.snapshot.json + snapshots channel
+  commands.repoSnapshot: { module: "./patterns/snapshot.mjs", export: repoSnapshot }
+  # step 10 (0017 → 0018/0019): per-ecosystem dependency-graph extractor — reused
+  # per lane by the dependency-graph.yaml sub-langgraph's router/switch. Real
+  # per-toolchain CLI analysis + saved artifacts on MOCK=false; stub under mock.
+  commands.depgraphExtract: { module: "./patterns/depgraph-extract.mjs", export: depgraphExtract }
+  # step 10 python-lane venv provisioning ($VENV_PATH, deptry+pipdeptree) — 0018/D1
+  commands.venvSetup: { module: "./patterns/venv-setup.mjs", export: venvSetup }
+  # remediate stage: bump dataset-named npm deps in place (mock-first) — 0019/A3+D2
+  commands.repoRemediate: { module: "./patterns/repo-remediate.mjs", export: repoRemediate }
+  # run-scoped service-health probe (plan run-health-and-errors-log Epic 01):
+  # probe the declaratively configured services (docker, verdaccio, devpi, …)
+  # once, before ingest, and publish the fact the errors stage quotes
+  commands.serviceHealth: { module: "./patterns/service-health.mjs", export: serviceHealth }
+  # once-per-run registry reachability preflight (0063/A2, completing 0054/D1):
+  # probe the configured endpoints for the lanes in play, publish the result on a
+  # run-scoped channel install/build/test all consume — blocked, never rerouted
+  commands.registryPreflight: { module: "./patterns/registry-preflight-run.mjs", export: registryPreflightRun }
+  # step 10 install stage: run the per-ecosystem installation playbook at each
+  # integrated repo's install locations (playbooks are argv-list data, the LLM's
+  # integrated[].install is evidence-only) — 0026/D1
+  commands.installRun: { module: "./patterns/install-run.mjs", export: installRun }
+  # step 11 install-verify stage: assert each step-10 install produced non-empty
+  # package output (node_modules/.venv/target) + non-empty logs — read-only,
+  # non-gating (a failed verification is a recorded finding, never an abort) — 0027/D1
+  commands.installVerify: { module: "./patterns/install-verify.mjs", export: installVerify }
+  # step 13 build stage: run the per-ecosystem BUILD playbook at each integrated
+  # repo's install locations (playbooks are argv-list data; LLM build evidence is
+  # evidence-only, never executed) — 0029/D1
+  commands.buildRun: { module: "./patterns/build-run.mjs", export: buildRun }
+  # test stage (capability 1): run the per-ecosystem TEST playbook at each
+  # integrated repo's install locations (argv-list data; "if present" honored) —
+  # mirrors commands.buildRun, pointed at configs/playbooks/ecosystem-test/
+  commands.testRun: { module: "./patterns/test-run.mjs", export: testRun }
+  # capability 4a: deterministic per-repo remediation PLAN from captured
+  # fingerprints + inputted vulnerability data; selects language tools + a skill
+  # from the central registries (harness-repo-package-remediation/tools, harness-repo-package-remediation/skills)
+  commands.remediationPlan: { module: "./patterns/remediation-plan.mjs", export: remediationPlan }
+  # capability 4b: LLM-review each plan → optimized SDK remediation prompt (via
+  # ctx.llm seam; references a SKILL loaded from harness-repo-package-remediation/skills); mock-aware
+  skills.optimizePrompt: { module: "./patterns/optimize-prompt.mjs", export: optimizePrompt }
+  # capability 6: classify every remediation attempt into fixed/broken/blocked/
+  # skipped/bug by cross-referencing install-verify + build + test (pure, non-gating)
+  commands.remediationValidate: { module: "./patterns/remediation-validate.mjs", export: remediationValidate }
+  # capability 7: per-repo markdown remediation reports + an aggregate JSON,
+  # written under the session artifact root
+  commands.remediationReport: { module: "./patterns/remediation-report.mjs", export: remediationReport }
+  # capability 8: single self-contained HTML report over every pipeline channel
+  # (escaped, offline, Modern Minimalist theme) — the run's outcome page
+  commands.renderHtmlReport: { module: "./patterns/render-html-report.mjs", export: renderHtmlReport }
+  # package-rules stage (0032/D5+A7): stamp each plan action with its policy
+  # verdict + rangeStrategy — the decided-actions seam remediate consumes
+  commands.applyPackageRules: { module: "./patterns/apply-package-rules.mjs", export: applyPackageRules }
+  # changelog tail stage (0032/D6): release range + source/compare URLs per
+  # applied remediation — mock-first, best-effort, never gating
+  commands.fetchChangelogs: { module: "./patterns/fetch-changelogs.mjs", export: fetchChangelogs }
+  # final CONTENT stage (step 18¾): scan each clone for changes (git) UNIONED
+  # with the recorded applied remediations, and copy the COMPLETE changed files
+  # + per-repo metadata into <session>/final_applied_changes/<repo>/ — the run's
+  # product, lifted out of the disposable clone tree. Bounded, non-gating
+  commands.exportAppliedChanges: { module: "./patterns/export-applied-changes.mjs", export: exportAppliedChanges }
+  # terminal stage (run-health-and-errors-log Epic 02): consolidate every
+  # failure in the run into <session>/errors.logs, grouped by ROOT CAUSE.
+  # Runs after html_report; non-gating; written on EVERY run, clean and mock
+  commands.errorsConsolidate: { module: "./patterns/errors-consolidate.mjs", export: errorsConsolidate }
+  # version-discovery engine (0033/D0): list / find / install-test the next
+  # available version for one package under one package manager (adapters
+  # D1–D9: npm pnpm pip poetry uv conda maven cargo docker) — mock-first
+  commands.findNextVersion: { module: "./patterns/find-next-version.mjs", export: findNextVersion }

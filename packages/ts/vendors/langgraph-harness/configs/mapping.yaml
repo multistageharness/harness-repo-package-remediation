@@ -1,0 +1,10 @@
+# langgraph-langchain-harness project mapping — layers custom patterns over the SDK's built-in
+# mapping (extends: default). Custom pattern modules must live INSIDE this
+# directory subtree (trust boundary — `../` escapes are rejected at load).
+version: 100
+extends: default
+patterns:
+  # pops the head off an array channel — the QUEUE archetype's worker step
+  commands.popQueue:        { module: "./patterns/pop-queue.mjs",         export: popQueue }
+  # summarize one fanout item and join it keyed by index (merge reducer)
+  skills.summarizeSection:  { module: "./patterns/summarize-section.mjs", export: summarizeSection }

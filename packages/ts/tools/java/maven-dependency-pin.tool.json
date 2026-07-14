@@ -1,0 +1,12 @@
+{
+  "id": "maven-dependency-pin",
+  "ecosystem": "java",
+  "kind": "remediation",
+  "title": "maven dependencyManagement pin",
+  "description": "Force a patched version of a transitively-pulled artifact by adding a dependencyManagement entry in pom.xml (the override-transitive strategy).",
+  "capabilities": ["transitive-pin", "manifest-edit"],
+  "manifests": ["pom.xml"],
+  "argv_template": ["mvn", "-B", "validate"],
+  "produces": ["pom.xml"],
+  "safety": "declarative dependencyManagement pin; parent starter version unchanged"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "npm-find-next-version",
+  "ecosystem": "node",
+  "packageManager": "npm",
+  "kind": "version-discovery",
+  "versioning": "semver",
+  "title": "npm next-available version finder",
+  "description": "List the versions registry.npmjs.org advertises for an npm package, rank candidates above the current version by semver, and install-test them in an isolated scratch dir to find the next version that actually installs.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["package.json"],
+  "argv_template": ["npm", "install", "{{package}}@{{version}}", "--no-save", "--no-audit", "--no-fund"],
+  "produces": ["installation_report.json"],
+  "safety": "install-test runs in an isolated scratch dir, never the target repo; mock runs are synthetic — zero network, zero subprocess"
+}

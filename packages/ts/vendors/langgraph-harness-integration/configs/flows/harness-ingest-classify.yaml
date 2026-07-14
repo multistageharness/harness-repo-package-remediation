@@ -1,0 +1,60 @@
+# harness↔langgraph-harness reference flow: ingest a CSV via @harness/sdk, classify each
+# row under mock (Send fan-out, one branch per row), and render a deterministic
+# JSON report. Proves the extension end-to-end, offline — no network, no key,
+# no git. (INGEST+FANOUT archetype.)
+version: 100
+name: harness-ingest-classify
+description: Ingest rows via @harness/sdk, classify each under mock, and render a JSON report.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  rows:       { type: array,  default: [] }
+  rows_item:  { type: object, default: {} }
+  rows_index: { type: number, default: 0 }
+  labels:     { type: array,  default: [], reducer: concat }
+  report:     { type: object, default: {} }
+
+entry: ingest
+
+nodes:
+  - id: ingest
+    uses: commands.harnessIngest
+    with: { path: "../../../../fixtures/sample.csv", out: rows }
+    writes: [rows]
+
+  - id: fan
+    uses: nodes.fanout
+    with: { over: rows }
+    reads: [rows]
+
+  - id: classify_row
+    uses: skills.classify
+    with:
+      system: "You classify a data record into a coarse category."
+      user: "Record: {{row}}"
+      input: { row: rows_item }
+      labels: [person, other]
+      out: labels
+    reads: [rows_item]
+    writes: [labels]
+
+  - id: render
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [rows, labels] }
+      out_dir: "../../.runs/out"
+      filename: "harness-ingest-classify.json"
+      format: json
+      into: report
+    reads: [rows, labels]
+    writes: [report]
+
+edges:
+  - { from: ingest, to: fan }
+  - { from: fan, fanout: { over: rows, to: classify_row }, then: render }
+  - { from: render, to: END }

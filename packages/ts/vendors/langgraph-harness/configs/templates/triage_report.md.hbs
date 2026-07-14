@@ -1,0 +1,19 @@
+# Alert triage — {{alert_id}}
+
+**Verdict:** {{severity}}
+
+## Alert
+{{alert_text}}
+
+## Assessment
+{{assessment}}
+
+{{#if escalation}}
+## Escalation
+{{escalation}}
+{{/if}}
+
+## Diagnostics
+{{#each error_logs}}
+- {{.}}
+{{/each}}

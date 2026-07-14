@@ -1,0 +1,17 @@
+{
+  "name": "@harness/langgraph-repo-remediation-html-report-generator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The single-page HTML remediation report: a pure, deterministic, dependency-free renderer over the repo-remediation pipeline's output channels. Inline CSS + inline JS, no external assets, offline-safe.",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "verify": "node --test test/*.test.mjs"
+  }
+}

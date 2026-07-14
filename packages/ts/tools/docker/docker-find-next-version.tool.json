@@ -1,0 +1,14 @@
+{
+  "id": "docker-find-next-version",
+  "ecosystem": "docker",
+  "packageManager": "docker",
+  "kind": "version-discovery",
+  "versioning": "docker",
+  "title": "docker image next-available tag finder",
+  "description": "List an image's tags from a registry v2 tags list (/v2/{repo}/tags/list) — tags, not versions: the numeric release array orders the tag, the variant suffix (-alpine, -slim) is excluded from ordering and pins compatibility instead, and rolling tags (alpine, bookworm) and commit hashes are not versions at all. The install-test is a pull-free docker manifest inspect existence/arch probe, never a docker pull.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["Dockerfile", "docker-compose.yml"],
+  "argv_template": ["docker", "manifest", "inspect", "{{package}}:{{version}}"],
+  "produces": ["installation_report.json"],
+  "safety": "manifest inspect is a read-only registry probe — nothing is pulled or run; mock runs are synthetic — zero network, zero subprocess"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@repo-fingerprint/report",
+  "version": "1.0.0",
+  "description": "Dependency-free ESM report-generation library — setup/install/run/test manifest + fingerprint-entry shaping built on a repository fingerprint.",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./setup-report": "./setup-report.mjs",
+    "./fingerprint-report": "./fingerprint-report.mjs"
+  },
+  "files": ["index.mjs", "setup-report.mjs", "fingerprint-report.mjs"],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

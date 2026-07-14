@@ -1,0 +1,20 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.neutral { background: #f8fafc; color: #475569; }
+.critical { background: #fff1f2; color: #be123c; }
+.high { background: #fff7ed; color: #c2410c; }
+.medium { background: #fffbeb; color: #b45309; }
+.low { background: #f8fafc; color: #475569; }
+.fixed { background: #ecfdf5; color: #047857; }
+.broken { background: #fff1f2; color: #be123c; }
+.blocked { background: #fffbeb; color: #b45309; }
+.skipped { background: #f8fafc; color: #64748b; }
+.bug { background: #faf5ff; color: #7e22ce; }

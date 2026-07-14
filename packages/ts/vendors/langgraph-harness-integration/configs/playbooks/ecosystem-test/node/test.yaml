@@ -1,0 +1,15 @@
+# node ecosystem TEST playbook (capability 1 — "test it, if present").
+# `npm run test --if-present` runs the `test` script when the repo defines one
+# and exits 0 (a clean no-op) when it does not — a test-less package is a
+# legitimate outcome, not an error (degrade-never-guess). The mjs/ts toolchains
+# share one recipe via the anchor, matching the build/install playbooks.
+ecosystem: node
+toolchains:
+  mjs: &npm_test_steps
+    - tool: npm-run-test
+      argv: ["npm", "run", "test", "--if-present"]
+      guard: npm
+      artifact: npm-run-test.log
+      allowNonZero: true
+  ts: *npm_test_steps
+  default: *npm_test_steps

@@ -1,0 +1,7 @@
+# docker "playbook" — an EXPLICIT no-op with a stated reason (0026/D2 §5,
+# reused by 0029/D1): `docker build` needs a daemon and produces images, not
+# workspace artifacts — infrastructure, not a workspace build. "No playbook"
+# and "a playbook that builds nothing" are different results.
+ecosystem: docker
+reason: "no build lane — container image builds are infrastructure, not a workspace build"
+toolchains: {}

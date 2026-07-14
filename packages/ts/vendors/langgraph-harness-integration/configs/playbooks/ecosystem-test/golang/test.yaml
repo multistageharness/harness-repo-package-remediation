@@ -1,0 +1,11 @@
+# golang ecosystem TEST playbook (capability 1). `go test ./...` runs every
+# package's tests; a module with no test files still exits 0 (packages report
+# "no test files"). Exit code is recorded (allowNonZero).
+ecosystem: golang
+toolchains:
+  default:
+    - tool: go-test
+      argv: ["go", "test", "./..."]
+      guard: go
+      artifact: go-test.log
+      allowNonZero: true

@@ -1,0 +1,11 @@
+{
+  "id": "manifest-edit",
+  "ecosystem": "other",
+  "kind": "remediation",
+  "title": "generic manifest edit",
+  "description": "Ecosystem-agnostic fallback: a formatting-preserving single-token version edit in a declared manifest when no ecosystem-specific tool applies.",
+  "capabilities": ["manifest-edit"],
+  "manifests": [],
+  "produces": [],
+  "safety": "atomic write; no command executed"
+}

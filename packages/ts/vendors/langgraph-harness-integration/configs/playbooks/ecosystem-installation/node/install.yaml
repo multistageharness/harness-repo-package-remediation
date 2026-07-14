@@ -1,0 +1,25 @@
+# node ecosystem installation playbook (0026/D2). `npm ci` is the reproducible
+# path, but it can only ever succeed against an existing package-lock.json —
+# so `requires_file` gates it up front: a lockfile-less location runs
+# `npm install` directly (the bypass recorded, never a doomed `npm ci`).
+# When the lockfile IS present but npm ci still fails (e.g. drift — lock out
+# of sync with package.json), the fallback degrades to `npm install` rather
+# than guessing (recorded, never silent). The mjs/ts toolchains share one
+# recipe — the anchor keeps them byte-identical.
+ecosystem: node
+toolchains:
+  mjs: &npm_steps
+    - tool: npm-ci
+      argv: ["npm", "ci"]
+      guard: npm
+      requires_file: package-lock.json
+      artifact: npm-ci.log
+      allowNonZero: true
+      fallback:
+        tool: npm-install
+        argv: ["npm", "install"]
+        guard: npm
+        artifact: npm-install.log
+        allowNonZero: true
+  ts: *npm_steps
+  default: *npm_steps

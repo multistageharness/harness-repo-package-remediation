@@ -1,0 +1,65 @@
+# DISP archetype: a router node at the entry dispatches on `mode` into
+# INGEST / STATS / ECHO lanes; only the selected lane runs.
+# (excel-data-navigator routeByMode lineage.)
+version: 100
+name: dispatch-modes
+description: Mode dispatch at entry — ingest, stats, or echo lane per the mode channel.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  mode:        { type: string, default: "echo" }
+  route_token: { type: string, default: "" }
+  file_list:   { type: array, default: [] }
+  queue_stats: { type: object, default: {} }
+  echo_reply:  { type: string, default: "" }
+  summary:     { type: object, default: {} }
+
+entry: pick_lane
+
+nodes:
+  - id: pick_lane
+    uses: nodes.router
+    with:
+      rules:
+        - { when: "state.mode == 'ingest'", token: ingest }
+        - { when: "state.mode == 'stats'", token: stats }
+      default: echo
+      out: route_token
+    reads: [mode]
+    writes: [route_token]
+
+  - id: ingest_lane
+    uses: commands.fsList
+    with: { dir: "../knowledge", ext: ".md", into: file_list }
+    writes: [file_list]
+
+  - id: stats_lane
+    uses: commands.readJson
+    with: { path: "../data/queue.yaml", pick: items, into: queue_stats }
+    writes: [queue_stats]
+
+  - id: echo_lane
+    uses: nodes.llm
+    with:
+      system: "Reply in one sentence."
+      user: "Mode was {{mode}} — confirm the dispatch worked."
+      input: { mode: mode }
+      out: echo_reply
+    reads: [mode]
+    writes: [echo_reply]
+
+  - id: wrap_up
+    uses: nodes.passthrough
+    with: { copy: { summary: queue_stats } }
+    writes: [summary]
+
+edges:
+  - { from: pick_lane, switch: { on: route_token, cases: { ingest: ingest_lane, stats: stats_lane, echo: echo_lane }, default: echo_lane } }
+  - { from: ingest_lane, to: wrap_up }
+  - { from: stats_lane, to: wrap_up }
+  - { from: echo_lane, to: wrap_up }
+  - { from: wrap_up, to: END }

@@ -1,0 +1,6 @@
+# docker "playbook" — an EXPLICIT no-op with a stated reason (mirrors the
+# build/install docker playbooks): there is no generic container test command to
+# run, and guessing one would violate degrade-never-guess.
+ecosystem: docker
+reason: "no test lane — docker images have no generic test command to run"
+toolchains: {}

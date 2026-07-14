@@ -1,0 +1,12 @@
+{
+  "id": "maven-version-bump",
+  "ecosystem": "java",
+  "kind": "remediation",
+  "title": "maven parent / property version bump",
+  "description": "Bump a parent BOM or a version property in pom.xml so managed dependencies pick up the patched line (the root-upgrade strategy).",
+  "capabilities": ["root-upgrade", "direct-bump", "manifest-edit"],
+  "manifests": ["pom.xml"],
+  "argv_template": ["mvn", "-B", "versions:set-property", "-Dproperty={{package}}", "-DnewVersion={{version}}"],
+  "produces": ["pom.xml"],
+  "safety": "property / parent bump; transitive graph re-resolves on next build"
+}

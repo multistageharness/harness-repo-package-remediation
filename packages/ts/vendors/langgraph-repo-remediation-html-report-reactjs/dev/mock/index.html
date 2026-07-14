@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RemediationReport (design mock) — Dev</title>
+    <!--
+      The design mock's own document. Tailwind is loaded HERE (via `./styles.css`, imported by
+      `main.tsx`) and nowhere else — the report's page at `/` must never see it, because its
+      preflight reset would restyle a report that ships with `report.css` alone (record 0058/A2).
+      Keeping the mock on a separate document is what makes that isolation real.
+    -->
+  </head>
+  <body class="m-0 p-0">
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,58 @@
+# FANOUT archetype: one Send branch per section, each summarized in parallel
+# by the CUSTOM skills.summarizeSection pattern and joined keyed-by-index
+# through a merge reducer. (figma-tools-spec-prd-generator lineage.)
+version: 100
+name: fanout-sections
+description: Send fan-out over sections; parallel summaries join through a keyed merge reducer.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  sections:          { type: array, default: [] }
+  sections_item:     { type: string, default: "" }
+  sections_index:    { type: number, default: 0 }
+  section_summaries: { type: object, default: {}, reducer: merge }
+  digest:            { type: object, default: {} }
+
+entry: seed_sections
+
+nodes:
+  - id: seed_sections
+    uses: nodes.passthrough
+    with:
+      set:
+        sections:
+          - "The loader parses yaml, interpolates env refs, and normalizes the config into canonical shape."
+          - "The mapping and registry stages bind pattern names to atomic files via dynamic import."
+          - "The compiler wires nodes and edges into a LangGraph StateGraph with a wrapped boundary ritual."
+    writes: [sections]
+
+  - id: fan
+    uses: nodes.fanout
+    with: { over: sections }
+    reads: [sections]
+
+  - id: summarize_section
+    uses: skills.summarizeSection
+    with: { item_from: sections_item, index_from: sections_index, into: section_summaries, max_words: 40 }
+    writes: [section_summaries]
+
+  - id: join_digest
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [section_summaries] }
+      out_dir: "../../.runs/out"
+      filename: "fanout-digest.json"
+      format: json
+      into: digest
+    reads: [section_summaries]
+    writes: [digest]
+
+edges:
+  - { from: seed_sections, to: fan }
+  - { from: fan, fanout: { over: sections, to: summarize_section }, then: join_digest }
+  - { from: join_digest, to: END }

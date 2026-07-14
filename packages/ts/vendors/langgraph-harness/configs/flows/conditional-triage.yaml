@@ -1,0 +1,72 @@
+# LIN+C archetype: classify an alert, then a switch edge routes noise
+# straight to END (LLM stays off the hot path), actionable through a
+# summary, critical through an escalation draft. (severity-categorization /
+# automated-alert-routing lineage.)
+version: 100
+name: conditional-triage
+description: Classify an alert and route noise/actionable/critical to different lanes.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  alert_id:    { type: string, default: "alert-0001" }
+  alert_text:  { type: string, default: "Disk usage at 91% on db-2; growth 4%/day for 6 days." }
+  severity:    { type: string, default: "" }
+  verdict:     { type: object, default: {} }
+  assessment:  { type: string, default: "" }
+  escalation:  { type: string, default: "" }
+  report_result: { type: object, default: {} }
+
+entry: classify_alert
+
+nodes:
+  - id: classify_alert
+    uses: skills.classify
+    with:
+      system: "You triage infrastructure alerts."
+      user: "Alert: {{alert}}"
+      input: { alert: alert_text }
+      labels: [noise, actionable, critical]
+      out: severity
+      out_detail: verdict
+    reads: [alert_text]
+    writes: [severity, verdict]
+
+  - id: assess
+    uses: skills.summarize
+    with:
+      input: { alert: alert_text, verdict: verdict }
+      max_words: 80
+      out: assessment
+    reads: [alert_text, verdict]
+    writes: [assessment]
+
+  - id: escalate
+    uses: skills.generate
+    with:
+      system: "Draft a crisp escalation message for the on-call lead."
+      user: "Alert: {{alert}}\nVerdict: {{verdict}}"
+      input: { alert: alert_text, verdict: verdict }
+      out: escalation
+    reads: [alert_text, verdict]
+    writes: [escalation]
+
+  - id: render
+    uses: commands.renderReport
+    with:
+      template: "../templates/triage_report.md.hbs"
+      out_dir: "../../.runs/out"
+      filename: "triage-report.md"
+      format: markdown
+      into: report_result
+    reads: [severity]
+    writes: [report_result]
+
+edges:
+  - { from: classify_alert, switch: { on: severity, cases: { noise: END, actionable: assess, critical: escalate }, default: assess } }
+  - { from: assess, to: render }
+  - { from: escalate, to: assess }
+  - { from: render, to: END }

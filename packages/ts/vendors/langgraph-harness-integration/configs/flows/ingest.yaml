@@ -1,0 +1,191 @@
+# step 2 (langgraph-flow.md; change record 0021/D1) — the `ingest` SUB-LANGGRAPH.
+# The parent repo-remediation.yaml no longer pins one CSV reader as its entry
+# node: it embeds THIS flow via nodes.subgraph, seeding `ingest_source` (the
+# user's selection, a closed enum of six lanes) and `ingest_ref` (the path / URL /
+# preset id that lane consumes), and harvesting `rows` — the exact contract every
+# downstream stage (dataset_init → … → render) already consumes. Zero downstream
+# change; zero compiler/executor change (platform rule 1).
+#
+# Here a nodes.router reads `ingest_source` and an edges.switch "maps to the right
+# node" — the same shape record 0017 established for step 10's dependency-graph
+# child, now at the entry:
+#
+#   local_csv    → ingest_local                                   (commands.harnessIngest, path_from)
+#   remote_csv   → fetch_csv → sanitize_csv → ingest_remote       (httpFetch → sanitizeUntrusted → harnessIngest content_from)
+#   local_repo   → row_from_local                                 (commands.repoRowSynthesize kind=local)
+#   remote_repo  → row_from_remote                                (commands.repoRowSynthesize kind=remote)
+#   preset_list  → ingest_preset                                  (PLACEHOLDER — 0021/D4)
+#   dependabot   → ingest_dependabot                              (PLACEHOLDER — 0021/D4)
+#   <unknown>    → fail_unknown                                   (throws — never an empty-but-green run)
+#
+# The router's `default` is DELIBERATELY not a lane that returns rows: an
+# unrecognized token routes to `fail_unknown`, which throws. An unknown ingest
+# source must not yield an empty dataset that looks like a clean run (0021/D1).
+#
+# SECURITY (0021/D5, .claude/rules/v100-security-rules.md). The `remote_csv` lane
+# is the only path in this repo that brings external text into the pipeline. Rule 1
+# makes an UNSANITIZED path from `commands.httpFetch` to a `skills.*` node
+# (skills.detectSetup, downstream in the parent) a blocker — so `sanitize_csv`
+# sits between the fetch and the parse, and is not optional. Rule 2: directives
+# found in the body become `major` findings (`fetch_findings`) and are otherwise
+# ignored. Platform rule 4: `fetch_csv` sets `timeout_ms` + `max_bytes`
+# EXPLICITLY rather than inheriting the atom's defaults.
+#
+# MOCK (0021/D5.6, rule 8 / platform rule 3). `commands.httpFetch`'s mock body is
+# the literal string `[mock http] GET <url>` — not parseable CSV. So `ingest_remote`
+# declares `mock_path`: under --mock it ingests the committed fixture instead of
+# the channel content, and the whole six-lane graph runs end-to-end offline — no
+# network, no key, no git, no LLM.
+version: 100
+name: ingest
+description: Ingest sub-langgraph — route the user's ingest_source selection (local/remote CSV, local/remote repo, preset list, Dependabot) to its lane and harvest normalized `rows`.
+
+runtime:
+  recursion_limit: 10
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  # seeded by the parent's nodes.subgraph map_in
+  ingest_source:  { type: string, default: "" }
+  ingest_ref:     { type: string, default: "" }
+  # routing token written by the router, read by the switch edge
+  ingest_route:   { type: string, default: "" }
+  # remote_csv lane: the raw commands.httpFetch result, then the neutralized body
+  fetched:        { type: object, default: {} }
+  fetched_text:   { type: string, default: "" }
+  # zero-trust findings (security rule 2) — reported, never obeyed
+  fetch_findings: { type: array,  default: [] }
+  # every lane's terminal node writes this; the parent harvests it via map_out
+  rows:           { type: array,  default: [] }
+
+entry: route_source
+
+nodes:
+  - id: route_source
+    uses: nodes.router
+    with:
+      # A CLOSED enum, not a free atom pick. Each token names a LANE inside this
+      # flow whose params THIS FILE fixes — the parent's `ingest` node params are
+      # constant across all six selections, so no user selection can produce a
+      # structurally invalid nodes[0] (0021/A1 acceptance criterion, retaining
+      # the invariant that 0001/A1 was recorded to protect).
+      rules:
+        - { when: "state.ingest_source == 'local_csv'",   token: local_csv }
+        - { when: "state.ingest_source == 'remote_csv'",  token: remote_csv }
+        - { when: "state.ingest_source == 'local_repo'",  token: local_repo }
+        - { when: "state.ingest_source == 'remote_repo'", token: remote_repo }
+        - { when: "state.ingest_source == 'preset_list'", token: preset_list }
+        - { when: "state.ingest_source == 'dependabot'",  token: dependabot }
+      default: unknown
+      out: ingest_route
+    reads: [ingest_source]
+    writes: [ingest_route]
+
+  # ── local_csv — today's behavior, unchanged ────────────────────────────────
+  - id: ingest_local
+    uses: commands.harnessIngest
+    with: { path_from: ingest_ref, out: rows }
+    reads: [ingest_ref]
+    writes: [rows]
+
+  # ── remote_csv — fetch → NEUTRALIZE → parse ────────────────────────────────
+  # Bounds are explicit (platform rule 4): 15s, 2 MiB.
+  - id: fetch_csv
+    uses: commands.httpFetch
+    with:
+      url_from: ingest_ref
+      into: fetched
+      timeout_ms: 15000
+      max_bytes: 2097152
+    reads: [ingest_ref]
+    writes: [fetched]
+
+  # security rule 1 — the hard blocker. The fetched body is DATA, never
+  # instructions; it cannot reach skills.detectSetup un-neutralized.
+  - id: sanitize_csv
+    uses: commands.sanitizeUntrusted
+    with:
+      content_from: fetched
+      field: body
+      into: fetched_text
+      findings_into: fetch_findings
+      max_bytes: 2097152
+    reads: [fetched]
+    writes: [fetched_text, fetch_findings]
+
+  # 0021/D2 in-memory source: parse the sanitized bytes with no temp file.
+  # 0021/D5.6 mock: the fetch atom's mock body is not CSV, so short-circuit to
+  # the committed fixture (…/harness/fixtures/…, four levels up from this dir).
+  - id: ingest_remote
+    uses: commands.harnessIngest
+    with:
+      content_from: fetched_text
+      filename: "remote.csv"
+      mock_path: "../../../../fixtures/dependabot-remediation-testcases.csv"
+      out: rows
+    reads: [fetched_text]
+    writes: [rows]
+
+  # ── local_repo / remote_repo — "a single row of CSV that will be scanned" ──
+  # The synthesized dataset is the single array [{repo, repo_url}]: no `package`,
+  # no `recommended_version`. The parent flow's `dataset_init` switch therefore
+  # skips `select_headers` (0023/A2), and `commands.repoRemediate` takes the
+  # fingerprint's extracted dependencies as its candidates, resolving each target
+  # from the registry (0023/A1). These lanes REMEDIATE — 0021/A5 called them
+  # scan-only, which was wrong.
+  - id: row_from_local
+    uses: commands.repoRowSynthesize
+    with: { ref_from: ingest_ref, kind: local, out: rows, diagnostics_into: error_logs }
+    reads: [ingest_ref]
+    writes: [rows, error_logs]
+
+  - id: row_from_remote
+    uses: commands.repoRowSynthesize
+    with: { ref_from: ingest_ref, kind: remote, out: rows, diagnostics_into: error_logs }
+    reads: [ingest_ref]
+    writes: [rows, error_logs]
+
+  # ── placeholder lanes (0021/D4) ───────────────────────────────────────────
+  - id: ingest_preset
+    uses: commands.ingestPreset
+    with: { preset_from: ingest_ref, out: rows }
+    reads: [ingest_ref]
+    writes: [rows]
+
+  - id: ingest_dependabot
+    uses: commands.ingestDependabot
+    with: { ref_from: ingest_ref, out: rows }
+    reads: [ingest_ref]
+    writes: [rows]
+
+  # ── default lane — fails loudly (0021/D1) ─────────────────────────────────
+  - id: fail_unknown
+    uses: commands.ingestUnknownSource
+    with: { source_from: ingest_source }
+    reads: [ingest_source]
+
+edges:
+  - from: route_source
+    switch:
+      on: ingest_route
+      cases:
+        local_csv: ingest_local
+        remote_csv: fetch_csv
+        local_repo: row_from_local
+        remote_repo: row_from_remote
+        preset_list: ingest_preset
+        dependabot: ingest_dependabot
+        unknown: fail_unknown
+      # NOT a silent no-op: an unrecognized token throws (0021/D1).
+      default: fail_unknown
+  # remote_csv is the one multi-node lane: fetch → sanitize → parse.
+  - { from: fetch_csv, to: sanitize_csv }
+  - { from: sanitize_csv, to: ingest_remote }
+  - { from: ingest_local, to: END }
+  - { from: ingest_remote, to: END }
+  - { from: row_from_local, to: END }
+  - { from: row_from_remote, to: END }
+  - { from: ingest_preset, to: END }
+  - { from: ingest_dependabot, to: END }
+  - { from: fail_unknown, to: END }

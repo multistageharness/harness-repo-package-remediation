@@ -1,0 +1,61 @@
+# RETRY archetype: LLM drafts a structured spec → a gate node validates it
+# against the SpecDoc type → a bounded loop edge regenerates on failure; the
+# bound ALWAYS wins. (ticket-to-wireframe / severity retry lineage.)
+version: 100
+name: retry-draft-gate
+description: Draft a spec, gate it against a schema, regenerate until valid or the bound forces exit.
+
+runtime:
+  recursion_limit: 50
+  checkpointer: none
+  mock: ${MOCK:true}
+
+types:
+  SpecDoc:
+    type: object
+    required: [title, steps]
+    properties:
+      title: { type: string, minLength: 3 }
+      steps: { type: array, minItems: 1, items: { type: string } }
+
+state:
+  ticket:   { type: string, default: "Add a dark-mode toggle to the settings page." }
+  spec:     { type: object, default: {} }
+  spec_ok:  { type: boolean, default: false }
+  final:    { type: object, default: {} }
+
+entry: draft_spec
+
+nodes:
+  - id: draft_spec
+    uses: skills.generate
+    with:
+      prompt: "../prompts/draft_spec.md"
+      input: { ticket: ticket }
+      out: spec
+    reads: [ticket]
+    writes: [spec]
+    validate: { schema: SpecDoc, on_invalid: degrade, fallback: {} }
+
+  - id: spec_gate
+    uses: nodes.gate
+    with: { channel: spec, schema: SpecDoc }
+    reads: [spec]
+    writes: [spec_ok]
+
+  - id: publish
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [spec, spec_ok, ticket] }
+      out_dir: "../../.runs/out"
+      filename: "retry-spec.json"
+      format: json
+      into: final
+    reads: [spec_ok]
+    writes: [final]
+
+edges:
+  - { from: draft_spec, to: spec_gate }
+  - loop: { from: spec_gate, body_from: draft_spec, until: "state.spec_ok == true", max: 2, on_max: publish }
+  - { from: publish, to: END }

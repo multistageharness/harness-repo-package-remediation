@@ -1,0 +1,22 @@
+# Default remediation policy (renovate-harness-enhancements Epic 04, record
+# 0019/D3; posture inverted by record 0032/A1) — evaluated by
+# configs/policy/apply-policy.mjs with the tri-state matchers. FIRST MATCH
+# WINS; candidates matching no rule are ALLOWED (the engine is default-open).
+#
+# 0032/A1 (HITL ruling H1, 2026-07-09): the point of this pipeline is to APPLY
+# the datasource-recommended version when provided, else the next eligible
+# version — SKIPPING is the last option, never the default. The former leading
+# deny (`matchDepTypes: [dependencies]` → skip) guaranteed zero bumps for any
+# production-dep security dataset and is REMOVED; the shipped default closes
+# nothing.
+#
+# To close something, add a deny rule ABOVE the point it must win, e.g.:
+#   - matchRepoUrls: ["*frozen-legacy-repo*"]
+#     skip: "policy: repo is change-frozen"
+#
+# ⚠ Do NOT gate an ALLOW on `matchConfidenceAtLeast`: bash-fingerprinted repos
+# carry `confidenceBucket: null` (repo-remediate.mjs), so a confidence-gated
+# allow can never match them and silently reintroduces skip-by-default —
+# exactly the posture 0032/A1 removed. Scope with `matchRepoUrls` /
+# `matchDepTypes` / `matchEcosystem` instead.
+policyRules: []

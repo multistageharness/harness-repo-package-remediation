@@ -1,0 +1,14 @@
+{
+  "id": "cargo-find-next-version",
+  "ecosystem": "rust",
+  "packageManager": "cargo",
+  "kind": "version-discovery",
+  "versioning": "semver",
+  "title": "cargo next-available version finder",
+  "description": "List the versions crates.io advertises for a crate (yanked releases excluded), rank candidates above the current version by semver, and dry-run cargo add against a scratch Cargo.toml to find the next version that actually resolves.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["Cargo.toml"],
+  "argv_template": ["cargo", "add", "{{package}}@{{version}}", "--dry-run"],
+  "produces": ["installation_report.json"],
+  "safety": "dry-run against a scratch Cargo.toml, never the target repo; mock runs are synthetic — zero network, zero subprocess"
+}

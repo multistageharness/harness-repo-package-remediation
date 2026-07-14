@@ -1,0 +1,12 @@
+{
+  "id": "pip-requirement-bump",
+  "ecosystem": "python",
+  "kind": "remediation",
+  "title": "pip requirement bump",
+  "description": "Bump a directly-declared requirement to a fixed patched version in requirements.txt / pyproject.toml.",
+  "capabilities": ["direct-bump", "manifest-edit"],
+  "manifests": ["requirements.txt", "pyproject.toml"],
+  "argv_template": ["pip", "install", "{{package}}=={{version}}"],
+  "produces": ["requirements.txt"],
+  "safety": "pins to an exact patched version; virtualenv-scoped install on real runs"
+}

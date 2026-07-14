@@ -1,0 +1,14 @@
+{
+  "id": "pnpm-find-next-version",
+  "ecosystem": "node",
+  "packageManager": "pnpm",
+  "kind": "version-discovery",
+  "versioning": "semver",
+  "title": "pnpm next-available version finder",
+  "description": "Same npm registry and semver ranking as the npm finder, install-tested through pnpm's resolver (lockfile-only add in an isolated scratch dir) to find the next version that actually resolves.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["package.json", "pnpm-lock.yaml"],
+  "argv_template": ["pnpm", "add", "{{package}}@{{version}}", "--save-dev=false", "--lockfile-only"],
+  "produces": ["installation_report.json"],
+  "safety": "install-test runs in an isolated scratch dir, never the target repo; mock runs are synthetic — zero network, zero subprocess"
+}

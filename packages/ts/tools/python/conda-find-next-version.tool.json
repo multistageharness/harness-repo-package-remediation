@@ -1,0 +1,14 @@
+{
+  "id": "conda-find-next-version",
+  "ecosystem": "python",
+  "packageManager": "conda",
+  "kind": "version-discovery",
+  "versioning": "pep440",
+  "title": "conda next-available version finder",
+  "description": "List the versions an anaconda.org channel advertises (conda packages are NOT PyPI packages — distinct registry, conda's own dotted+build version grammar), rank candidates above the current version, and dry-run conda solves (--dry-run --json) to find the next version that actually resolves — no real environment mutation.",
+  "capabilities": ["versions", "find", "test"],
+  "manifests": ["environment.yml"],
+  "argv_template": ["conda", "install", "--dry-run", "--json", "{{package}}={{version}}"],
+  "produces": ["installation_report.json"],
+  "safety": "dry-run solve parsed from --json — no environment mutation; mock runs are synthetic — zero network, zero subprocess"
+}

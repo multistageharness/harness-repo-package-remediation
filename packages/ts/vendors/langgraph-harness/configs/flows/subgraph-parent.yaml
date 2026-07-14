@@ -1,0 +1,53 @@
+# Subgraph composition: the parent embeds child-summarize.yaml as ONE node
+# via nodes.subgraph (map_in seeds the child, map_out harvests it). The
+# child compiles through the same yaml → mapping → registry → execute
+# pipeline with the same registry instance.
+version: 100
+name: subgraph-parent
+description: Parent flow embedding the child-summarize flow as a single node.
+
+runtime:
+  recursion_limit: 25
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  source_text:   { type: string, default: "" }
+  child_summary: { type: string, default: "" }
+  published:     { type: object, default: {} }
+
+entry: seed
+
+nodes:
+  - id: seed
+    uses: nodes.passthrough
+    with:
+      set:
+        source_text: "The langgraph-langchain-harness platform has four pipeline stages (loader, mapping, registry, executor) and nine atom categories. Every pattern is a dedicated file exposing one factory function, and flows are pure yaml."
+    writes: [source_text]
+
+  - id: summarize_via_child
+    uses: nodes.subgraph
+    with:
+      config: "./child-summarize.yaml"
+      map_in: { text: source_text }
+      map_out: { child_summary: summary }
+    reads: [source_text]
+    writes: [child_summary]
+
+  - id: publish
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [source_text, child_summary] }
+      out_dir: "../../.runs/out"
+      filename: "subgraph-result.json"
+      format: json
+      into: published
+    reads: [child_summary]
+    writes: [published]
+
+edges:
+  - { from: seed, to: summarize_via_child }
+  - { from: summarize_via_child, to: publish }
+  - { from: publish, to: END }

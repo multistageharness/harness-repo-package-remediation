@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://multistageharness/tools-repo-filesystem-snapshots/snapshot.schema.json",
+  "title": "Repo Filesystem Snapshot",
+  "description": "One JSON file per repo written to .harness/repo-snapshots/<repo>.snapshot.json. A basename->paths inventory of a cloned repo's tracked files, flattened by filename, with an optional fallback collision index for basenames that appear in >=2 locations. Change records 0008/D2 (flat map) + 0009/D5 (collision index) + 0029/A1 (phase namespace).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["repo", "root", "namespace", "generatedAt", "fileCount", "snapshot"],
+  "properties": {
+    "repo": {
+      "type": "string",
+      "description": "Repo slug — the <repo name> used for the snapshot filename."
+    },
+    "root": {
+      "type": "string",
+      "description": "The clone path the snapshot was taken from (verbatim as supplied to the tool)."
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Run-phase label (0029/A1) — which point of the pipeline this snapshot captures: 'initial' (post-remediate, pre-install), 'build' (post-build), 'test', … Open-ended; the tool defaults to 'initial' when the caller omits it, so N snapshots per repo coexist and diff pairwise."
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp, stamped by the caller (the tool never reads the clock).",
+      "format": "date-time"
+    },
+    "fileCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total distinct repo-relative path entries in `snapshot`."
+    },
+    "snapshot": {
+      "type": "object",
+      "description": "FLATTENED BY BASENAME: <filename> -> sorted array of repo-relative, POSIX-separated paths where a file with that basename lives. Basename keys are sorted; arrays within each key are sorted.",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 1
+      }
+    },
+    "collisions": {
+      "type": "object",
+      "description": "OPTIONAL fallback secondary index (0009/D5) — present ONLY when >=1 basename collides. A consumer resolves by basename against `snapshot` first; when that returns >1 path (ambiguous) it falls back to byDir/byExt to disambiguate.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["count", "byDir", "byExt"],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 2,
+            "description": "Number of colliding locations for this basename."
+          },
+          "byDir": {
+            "type": "object",
+            "description": "Colliding paths grouped by their POSIX dirname ('.' for repo root). Keys sorted; arrays sorted.",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          },
+          "byExt": {
+            "type": "object",
+            "description": "Colliding paths grouped by extension ('' for no extension). Keys sorted; arrays sorted.",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

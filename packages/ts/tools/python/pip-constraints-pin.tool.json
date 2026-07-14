@@ -1,0 +1,12 @@
+{
+  "id": "pip-constraints-pin",
+  "ecosystem": "python",
+  "kind": "remediation",
+  "title": "pip transitive constraints pin",
+  "description": "Force a patched version of a transitively-resolved package via a constraints.txt entry while leaving the parent dependency untouched (the override-transitive strategy).",
+  "capabilities": ["transitive-pin", "manifest-edit"],
+  "manifests": ["requirements.txt", "constraints.txt"],
+  "argv_template": ["pip", "install", "-c", "constraints.txt", "-r", "requirements.txt"],
+  "produces": ["constraints.txt"],
+  "safety": "constraints file only; parent dependency version unchanged"
+}

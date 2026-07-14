@@ -1,0 +1,42 @@
+# python ecosystem TEST playbook (capability 1). `pytest` discovers and runs the
+# repo's tests; a repo with no tests exits non-zero (exit code 5 = no tests
+# collected) and is RECORDED (allowNonZero) — degrade, never guess. The poetry /
+# uv lanes run pytest through their runners; steps run with cwd at the location.
+ecosystem: python
+toolchains:
+  pip: &py_test_steps
+    - tool: pytest
+      argv: ["pytest", "-q"]
+      guard: pytest
+      artifact: pytest.log
+      allowNonZero: true
+      # 0035/A1: pytest exit 5 = "no tests collected" — a test-less repo is a
+      # benign no-op (matching the node lane's `--if-present`), never a failure
+      # and never a trigger for the fallback interpreter.
+      noopExitCodes: [5]
+      fallback:
+        tool: pytest
+        argv: ["python3", "-m", "pytest", "-q"]
+        guard: python3
+        # 0035/A2: harden the interpreter selection — a runnability probe, not a
+        # bare PATH check. `python3 -c 'import pytest'` confirms THIS python3 can
+        # import pytest, so the fallback can never select a pytest-less interpreter
+        # (e.g. a Homebrew python on PATH) and manufacture a `No module named
+        # pytest` failure the dependency edit had nothing to do with.
+        guardArgv: ["python3", "-c", "import pytest"]
+        artifact: pytest.log
+        allowNonZero: true
+        noopExitCodes: [5]
+  poetry:
+    - tool: poetry-pytest
+      argv: ["poetry", "run", "pytest", "-q"]
+      guard: poetry
+      artifact: poetry-pytest.log
+      allowNonZero: true
+  uv:
+    - tool: uv-pytest
+      argv: ["uv", "run", "pytest", "-q"]
+      guard: uv
+      artifact: uv-pytest.log
+      allowNonZero: true
+  default: *py_test_steps

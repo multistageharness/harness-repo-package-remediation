@@ -1,0 +1,722 @@
+# harness↔langgraph-harness repo-remediation flow — steps 2–14 of langgraph-flow.md.
+# (Step 1, the session gate, is a wizard-time step that compiles to no node — 0024/A3.)
+# Ingest through the step-1 `ingest` SUB-LANGGRAPH (0021/A1 — a router over the
+# user's `ingest_source` selection dispatches to one of six lanes: local/remote
+# CSV, local/remote repo, preset list, Dependabot), seed the `dataset` spine (rows +
+# original_headers), record a working header subset (originals kept — SKIPPED for the
+# two repo-source lanes, which ingest a single {repo, repo_url} row: 0023/A2), normalize +
+# dedup the repo-URL column into `dataset.repos`, fan out to clone each repo into
+# .harness/repos/<slug> (clone failures are classified + RECORDED as data, never
+# thrown — 0019/A1), fingerprint each clone into .harness/fingerprints.json,
+# LLM-scan each fingerprinted repo for setup/install/run/test manifests into
+# .harness/integrated.json, REMEDIATE each repo's dataset-named npm dependency
+# to its recommended version in place (0019/A3+D2 — mock yields stub records),
+# snapshot each clone's tracked filesystem into a per-repo
+# .harness/snapshots/initial/<reponame>.repo.json inventory (langgraph-flow.md
+# step 9; phase-namespaced `initial` per 0029/A1), build each installed repo via
+# the per-ecosystem build playbooks (step 13, 0029/D1), re-snapshot each clone
+# post-build under snapshots/build/ (step 14, 0029/D2), and render a
+# deterministic JSON report. Mock-first, offline — no network, no
+# key, no git, no LLM under --mock. (INGEST + FANOUT archetype, over
+# {url, clone_url} repo entries rather than full dataset rows.)
+version: 100
+name: repo-remediation
+description: Ingest rows, pick a remediation subset, dedup repo URLs, clone each repo, fingerprint each clone, and LLM-scan each repo's setup/install/run/test under mock.
+
+runtime:
+  # the chain grew with capabilities 1(test)/4/6/7/8 (plan → optimize → … →
+  # validate → remediation_report → render → html_report) and again with
+  # 0032/D5+D6 (apply_rules, changelog), so the super-step budget keeps
+  # headroom above the ~28-node linear path.
+  recursion_limit: 40
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  # step 2 (0021/A1): the ingest ORCHESTRATOR's two inputs. `ingest_source` is a
+  # closed enum — local_csv | remote_csv | local_repo | remote_repo | preset_list |
+  # dependabot — and `ingest_ref` is the path / URL / preset id that lane consumes.
+  # The wizard collects both up front (the compiled StateGraph is non-interactive)
+  # and seeds them as channel defaults; a hand-run of this flow overrides via env.
+  ingest_source: { type: string, default: "${INGEST_SOURCE:local_csv}" }
+  ingest_ref:    { type: string, default: "${INGEST_REF:../../../../fixtures/dependabot-remediation-testcases.csv}" }
+  # run-scoped SERVICE-HEALTH fact (plan run-health-and-errors-log Epic 01):
+  # probed once by the flow's FIRST node (`health`), before the first repo is
+  # cloned — `{ ok, services: [{ id, kind, status, detail, remedy, evidence }] }`.
+  # The default is BENIGN (ok: true) so a flow that somehow skips the node
+  # behaves exactly as today rather than blocking everything. Distinct from
+  # `registry_preflight` (the LANE-level gating fact, which needs the integrated
+  # manifests): this one NAMES the services (docker included) so the terminal
+  # errors stage can quote "Docker is not running", not just "ECONNREFUSED".
+  service_health:
+    type: object
+    default:
+      ok: true
+      services: []
+  # the shared spine every stage reads + writes (langgraph-flow.md steps 3–6)
+  dataset:
+    type: object
+    default:
+      original_headers: []
+      selected_headers: []
+      rows: []
+      repo_column: ""
+      repos: []
+      clone_results: []
+  rows:          { type: array,  default: [] }
+  # `repos` holds {url, clone_url} entries: `url` is the canonical https dedup key
+  # (names the clone slug, joins every downstream stage); `clone_url` is the ref as
+  # supplied, and is what git actually clones — canonicalizing an SSH ref to https
+  # drops key auth and makes a private repo report "Repository not found".
+  repos:         { type: array,  default: [] }
+  repos_item:    { type: object, default: {} }
+  repos_index:   { type: number, default: 0 }
+  clone_results: { type: array,  default: [], reducer: concat }
+  fingerprints:  { type: array,  default: [] }
+  integrated:    { type: array,  default: [] }
+  # remediate stage (0019/A3+D2): one record per bump candidate — applied or
+  # skipped-with-reason — rendered into the final report.
+  remediations:  { type: array,  default: [] }
+  snapshots:     { type: array,  default: [] }
+  # registry preflight (0063/A2, completing 0054/D1): the RUN-SCOPED registry
+  # reachability fact — probed once by commands.registryPreflight, read by the
+  # install, build, AND test stages so no stage walks into a dead registry a
+  # prior stage already proved unreachable. `{ ok, lanes, checked, unreachable }`.
+  registry_preflight: { type: object, default: {} }
+  # step 10 install stage (0026/A1): one record per repo — playbook steps run,
+  # skipped-with-reason, or a mock stub. A single looping node writes it once,
+  # so no concat reducer (see 0026/D1's note before converting to a Send fan-out).
+  installs:      { type: array,  default: [] }
+  # step 11 install-verify stage (0027/D1): one record per repo — per-location
+  # package-dir-non-empty + log-present assertions over the step-10 installs, or a
+  # skipped/mock stub. A single looping node writes it once, so no concat reducer
+  # (same rationale as the installs channel note above).
+  install_verifications: { type: array, default: [] }
+  # step 13 build stage (0029/D1): one record per repo — build-playbook steps
+  # run, skipped-with-reason, or a mock stub. A single looping node writes it
+  # once, so no concat reducer (same rationale as the installs channel note).
+  builds:        { type: array,  default: [] }
+  # step 14 build-snapshot stage (0029/D2): the post-build re-snapshot, phase-
+  # tagged `build` — a DISTINCT channel from `snapshots` (the step-9 `initial`
+  # phase) so the render pick stays reducer-unambiguous (0029 open item 4).
+  build_snapshots: { type: array, default: [] }
+  # step 11 (0017): per-repo branch channels for the dependency_graph fan-out over
+  # fingerprints, and the concat-accumulated per-repo placeholder graphs.
+  fingerprints_item:  { type: object, default: {} }
+  fingerprints_index: { type: number, default: 0 }
+  dependency_graphs:  { type: array,  default: [], reducer: concat }
+  report:        { type: object, default: {} }
+  fingerprints_report: { type: object, default: {} }
+  integrated_report:   { type: object, default: {} }
+  dependency_graph_report: { type: object, default: {} }
+  # capability 4a: the deterministic per-repo remediation PLAN (captured
+  # fingerprints joined with inputted vulnerability data; tools + skill selected).
+  plans:               { type: array,  default: [] }
+  # package-rules stage (0032/D5): the plans with each action stamped with its
+  # policy verdict + rangeStrategy — the decided-actions channel remediate executes.
+  plans_ruled:         { type: array,  default: [] }
+  # changelog tail stage (0032/D6): release range + source/compare URL per
+  # applied remediation.
+  changelogs:          { type: array,  default: [] }
+  # capability 4b: the LLM-optimized SDK remediation prompt per repo (references a
+  # skill loaded from harness-repo-package-remediation/skills).
+  optimized_prompts:   { type: array,  default: [] }
+  # capability 1 (test): per-repo test-playbook results (run AFTER build).
+  tests:               { type: array,  default: [] }
+  # capability 6: per-repo outcome classification — fixed/broken/blocked/skipped/bug.
+  validations:         { type: array,  default: [] }
+  # capability 7: the remediation-report node result (per-repo markdown + aggregate).
+  remediation_summary: { type: object, default: {} }
+  # capability 8: the single-HTML report node result.
+  report_html:         { type: object, default: {} }
+  # final CONTENT stage (step 18¾): the export summary — where the changed files
+  # were copied, and the per-repo ledger of what changed. The channel is named
+  # `final_applied_changes` and its NODE is `export_changes` (langgraph forbids a
+  # node named after a channel — the constraint that also named `preflight`
+  # beside `registry_preflight` and `health` beside `service_health`).
+  final_applied_changes: { type: object, default: {} }
+  # terminal errors stage (run-health-and-errors-log Epic 02): the consolidated
+  # verdict — cause, remedy, blast radius, and the absolute errors.logs path —
+  # the CLI exit line reads back.
+  errors_summary:      { type: object, default: {} }
+
+entry: health
+
+nodes:
+  # plan run-health-and-errors-log Epic 01 — the flow's FIRST node: probe the
+  # declaratively configured services (harness.config.json `services:`, default
+  # docker + verdaccio + devpi) ONCE, before the first repo is cloned, and
+  # publish the fact on `service_health`. Reporting only — the lane-level
+  # gating stays with `preflight`/`registry_preflight`. Under --mock: a pure
+  # deterministic stub, no subprocess, no socket.
+  # (node id `health` — LangGraph forbids a node named after a channel, the
+  # same constraint that named `preflight` beside `registry_preflight`.)
+  - id: health
+    uses: commands.serviceHealth
+    with:
+      into: service_health
+    reads: []
+    writes: [service_health]
+
+  # step 2 (0021/A1) — the ingest ORCHESTRATOR. Not a fixed CSV reader any more:
+  # a nodes.subgraph over ./ingest.yaml whose router maps `ingest_source` to one
+  # lane per source. The params here (`config`, `map_in`, `map_out`) are CONSTANT
+  # across all six selections — the lane, not the user, fixes each lane's atom
+  # params — so no selection can emit a structurally invalid nodes[0] (the
+  # invariant 0001/A1 was recorded to protect, retained as an acceptance criterion).
+  - id: ingest
+    uses: nodes.subgraph
+    with:
+      config: "./ingest.yaml"
+      map_in: { ingest_source: ingest_source, ingest_ref: ingest_ref }
+      map_out: { rows: rows }
+    reads: [ingest_source, ingest_ref]
+    writes: [rows]
+
+  - id: dataset_init
+    uses: commands.datasetInit
+    with: { rows_from: rows, into: dataset }
+    reads: [rows]
+    writes: [dataset]
+
+  - id: select_headers
+    uses: commands.selectHeaders
+    with:
+      dataset_from: dataset
+      columns: [repo, repo_url, package, severity, recommended_version]
+      into: dataset
+    reads: [dataset]
+    writes: [dataset]
+
+  - id: collect_repos
+    uses: commands.collectRepos
+    with: { dataset_from: dataset, column: repo_url, into: dataset, repos_into: repos }
+    reads: [dataset]
+    writes: [dataset, repos]
+
+  - id: fan
+    uses: nodes.fanout
+    with: { over: repos }
+    reads: [repos]
+
+  # clone failures are RECORDED, not thrown (0019/A1): the classified atom
+  # retries transient errors bounded (max_attempts) and lands auth_required /
+  # not_found / unknown failures as `{ failed: true, errorClass, … }` data so
+  # one bad URL can never abort a fan-out branch. Mock shape unchanged.
+  - id: clone_repo
+    uses: commands.gitCloneClassified
+    with:
+      url_from: repos_item
+      workspace: "../../.harness/repos"
+      on_exist: skip
+      max_attempts: 3
+      into: clone_results
+    reads: [repos_item]
+    writes: [clone_results]
+
+  - id: fingerprint
+    uses: commands.repoFingerprint
+    with: { clones_from: clone_results, into: fingerprints }
+    reads: [clone_results]
+    writes: [fingerprints]
+
+  - id: fingerprint_report
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [fingerprints] }
+      out_dir: "../../.harness"
+      filename: "fingerprints.json"
+      format: json
+      into: fingerprints_report
+    reads: [fingerprints]
+    writes: [fingerprints_report]
+
+  # 0065/D1 — the FIELD-RESOLUTION seam. `dependency_scope` and `manifest_path`
+  # are optional input columns; this stage resolves them ONCE against the clone on
+  # disk so `plan`, `apply_rules`, `remediate` and contract C1 cannot disagree:
+  #
+  #     Provided wins.  Absent derives.  Underivable blocks — it never guesses.
+  #
+  # Sited AFTER clone/fingerprint (it needs the clones on disk) and BEFORE `plan`
+  # (which branches on strategy, so the PLAN — not just the outcome — must be
+  # right). A package declared in no manifest is TRANSITIVE by definition; before
+  # 0065 an absent `dependency_scope` silently became `direct-bump`, whose lane
+  # then demanded a declaration that a transitive dep cannot have → 6/12 skipped.
+  # Node id is `resolve_datasource`, not `dataset` — LangGraph forbids a node named
+  # after a channel (cf. `preflight`/`registry_preflight`, `health`/`service_health`).
+  - id: resolve_datasource
+    uses: commands.resolveDatasource
+    with:
+      dataset_from: dataset
+      clones_from: clone_results
+      into: dataset
+      decision_log: "../../.harness/decision.jsonl"
+    reads: [dataset, clone_results]
+    writes: [dataset]
+
+  - id: integrate
+    uses: skills.detectSetup
+    with: { fingerprints_from: fingerprints, into: integrated }
+    reads: [fingerprints]
+    writes: [integrated]
+
+  - id: integrate_report
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [integrated] }
+      out_dir: "../../.harness"
+      filename: "integrated.json"
+      format: json
+      into: integrated_report
+    reads: [integrated]
+    writes: [integrated_report]
+
+  # remediate (0019/A3+D2, Epic 03): the pipeline's first mutating stage — for
+  # each repo, bump the dataset row's `package` to its `recommended_version`
+  # (registry-lookup fallback) in package.json, in place. When the dataset has NO
+  # `package` column at all — the repo-source lanes — the candidates are instead the
+  # fingerprint's extracted dependencies, each target resolved from the registry
+  # (0023/A1): those lanes remediate too, they just have no spreadsheet targets.
+  # Runs BEFORE snapshot
+  # so `.harness/snapshots/*.repo.json` inventory the post-bump state; on real
+  # runs step 11's depgraph commands likewise observe post-remediation trees
+  # (flagged, intended — 0019/A3). Mock → deterministic stub records, no fs/HTTP.
+  # capability 4a — the deterministic per-repo PLAN. Joins each repo's CAPTURED
+  # evidence (fingerprint + extracted dependencies) with the INPUTTED
+  # vulnerability data (the dataset rows for that repo) and selects the
+  # language-specific tools (harness-repo-package-remediation/tools/) + a skill (harness-repo-package-remediation/skills/). Pure +
+  # deterministic — identical under --mock (the dataset IS the vuln data). Runs
+  # BEFORE optimize + remediate.
+  - id: plan
+    uses: commands.remediationPlan
+    with:
+      fingerprints_from: fingerprints
+      dataset_from: dataset
+      into: plans
+    reads: [fingerprints, dataset]
+    writes: [plans]
+
+  # package-rules stage (0032/D5 + A7): between plan and remediate — stamps each
+  # plan action with its declarative policy verdict (the gate that previously
+  # lived inline in repo-remediate.mjs) plus package-rules config
+  # (rangeStrategy). remediate consumes the stamped channel and stays a pure
+  # executor. Same policy file, same tri-state matchers — a widen, not a fork.
+  - id: apply_rules
+    uses: commands.applyPackageRules
+    with:
+      plans_from: plans
+      fingerprints_from: fingerprints
+      policy_path: "../policy/remediation-policy.yaml"
+      decision_log: "../../.harness/decision.jsonl"
+      into: plans_ruled
+    reads: [plans, fingerprints]
+    writes: [plans_ruled]
+
+  # capability 4b — the LLM prompt optimizer. Reviews each plan (via the ctx.llm
+  # seam) and emits the optimized remediation prompt for the SDK agent, with the
+  # tools selected for that repo's language; references a SKILL loaded from
+  # harness-repo-package-remediation/skills. Mock → deterministic constructed prompt, no seam call.
+  - id: optimize
+    uses: skills.optimizePrompt
+    with:
+      plans_from: plans
+      into: optimized_prompts
+    reads: [plans]
+    writes: [optimized_prompts]
+
+  - id: remediate
+    uses: commands.repoRemediate
+    with:
+      fingerprints_from: fingerprints
+      dataset_from: dataset
+      # declarative gate (0019/D3) — fallback only: actions arrive pre-stamped
+      # by apply_rules (0032/A7); the inline path covers plan-less callers.
+      policy_path: "../policy/remediation-policy.yaml"
+      # 0032/A2: the DECIDED plan this stage EXECUTES — candidacy, strategy,
+      # targets, and policy verdicts all come from the stamped actions.
+      plans_from: plans_ruled
+      # 0032/D1: the session decision log (JSONL) — session-scoped at render time.
+      decision_log: "../../.harness/decision.jsonl"
+      into: remediations
+    reads: [fingerprints, dataset, plans_ruled]
+    writes: [remediations]
+
+  # step 9 (langgraph-flow.md): snapshot each clone's tracked filesystem into a
+  # per-repo <reponame>.repo.json inventory under .harness/snapshots. Reuses the
+  # commands.repoSnapshot atom with name_suffix `repo.json` (default is the
+  # `snapshot.json` the separate repo-snapshot.yaml flow writes — record 0014).
+  # 0029/A1: this is the run's INITIAL phase snapshot (post-remediate,
+  # pre-install) — `namespace: initial` names it explicitly and lands it under
+  # snapshots/initial/, alongside — and diffable against — step 14's
+  # snapshots/build/ re-snapshot.
+  - id: snapshot
+    uses: commands.repoSnapshot
+    with:
+      clones_from: clone_results
+      out_dir: "../../.harness/snapshots"
+      name_suffix: "repo.json"
+      namespace: "initial"
+      into: snapshots
+    reads: [clone_results]
+    writes: [snapshots]
+
+  # step 10 install stage (0026/A1+D1): loop over the integrated repos, resolve
+  # each repo's install locations (integrated[].modules — ecosystem-tagged, all
+  # ecosystems + subRepos, 0026/A2+D3) and run the declarative per-ecosystem
+  # installation playbook (configs/playbooks/ecosystem-installation/, 0026/D2)
+  # at each location. The ORDERING is load-bearing: AFTER snapshot (installing
+  # writes node_modules/target/.venv into the clone — the 0025/A2 hazard class —
+  # so snapshots keep inventorying the pre-install, post-remediate tree) and
+  # BEFORE depgraph_fan (step 11's npm list / pipdeptree / deptry are only
+  # meaningful against an installed tree). integrated[].install stays EVIDENCE —
+  # the atom never executes the LLM's shell strings (0026/A3). Mock →
+  # deterministic per-repo stubs, no fs/subprocess/network.
+  #
+  # 0054 — this stage used to be the run's whole cost: with Docker down, the
+  # local Verdaccio (:4873) / devpi (:3141) refused every connection, each npm
+  # command slept 70s in retry backoff, fell back to cache, and exited 0 — 19 of
+  # a 22-minute run, invisibly. Four seams close that: `concurrency` overlaps the
+  # (independent) repos under a BOUNDED pool (A1); a once-per-flow registry
+  # preflight skips registry-touching steps when the configured endpoint doesn't
+  # answer (D1+A2, `blocked` — never rerouted to a public registry);
+  # `fetch_retries`/`fetch_retry_max_ms` cap the child retry budget for a
+  # registry that dies mid-run (A3); `fail_fast_after` trips a circuit breaker
+  # after N consecutive same-cause failures (D2). `fail_fast_after: 0` disables
+  # the breaker; `concurrency: 1` restores the serial walk.
+  # registry preflight (0063/A2, completing 0054/D1): probe the configured
+  # endpoints ONCE for the lanes actually in play (derived from the integrated
+  # manifests) and publish the result as a run-scoped channel. 0054 computed
+  # this inside install-run, where the result died; build-run then walked into
+  # the same dead registry and reported a RED BUILD for an environmental outage
+  # (`python3 -m build` pip-installs hatchling from the dead devpi — PEP 517).
+  # Now install, build, and test all read the one fact and skip their gated
+  # steps (`blocked`, never `broken` — and NEVER rerouted to a public registry).
+  # (node id `preflight` — LangGraph forbids a node named after a channel, so
+  # the node is `preflight` and the channel it writes is `registry_preflight`.)
+  - id: preflight
+    uses: commands.registryPreflight
+    with:
+      integrated_from: integrated
+      into: registry_preflight
+    reads: [integrated]
+    writes: [registry_preflight]
+
+  - id: install
+    uses: commands.installRun
+    with:
+      integrated_from: integrated
+      clones_from: clone_results
+      fingerprints_from: fingerprints
+      preflight_from: registry_preflight
+      playbooks_dir: "../playbooks/ecosystem-installation"
+      save_dir: "../../.harness/installs"
+      into: installs
+      concurrency: 4
+      fail_fast_after: 3
+      fetch_retries: 1
+      fetch_retry_max_ms: 5000
+    reads: [integrated, clone_results, fingerprints, registry_preflight]
+    writes: [installs]
+
+  # step 11 install-verify stage (0027/A1+D1): assert the step-10 install
+  # actually PRODUCED output — a zero exit code proves the command returned, not
+  # that it materialized dependencies. Per repo + per executed location, check
+  # the ecosystem package dir (node_modules / .venv / target) is present +
+  # non-empty and every recorded step log exists + is non-empty. READ-ONLY and
+  # NON-GATING: an empty package dir / missing log is a RECORDED `failed`
+  # finding, never an abort — depgraph_fan still runs. The ORDERING is
+  # load-bearing: AFTER install (it observes install's result) and BEFORE
+  # depgraph_fan (an empty tree would make step 12's npm list / pipdeptree /
+  # deptry silently under-report — verifying the install is exactly that seam).
+  # Mock → deterministic per-repo stubs, no fs/subprocess/network.
+  - id: install_verify
+    uses: commands.installVerify
+    with:
+      installs_from: installs
+      clones_from: clone_results
+      save_dir: "../../.harness/installs"
+      into: install_verifications
+    reads: [installs, clone_results]
+    writes: [install_verifications]
+
+  # step 12 (langgraph-flow.md; change record 0017) — dependency_graph
+  # SUB-LANGGRAPH. Fan out over the step-6 fingerprints (one Send per repo) and
+  # run each repo's dependency-graph extraction as its OWN subgraph instance
+  # (configs/flows/dependency-graph.yaml), whose router maps the repo's detected
+  # ecosystem to a placeholder extractor lane. Adopts nodes.subgraph narrowly for
+  # step 10 only — the clone Send fan-out and the single-node fingerprint/
+  # integrate/snapshot stages are untouched (0016/D1).
+  - id: depgraph_fan
+    uses: nodes.fanout
+    with: { over: fingerprints }
+    reads: [fingerprints]
+
+  - id: dependency_graph
+    uses: nodes.subgraph
+    with:
+      config: "./dependency-graph.yaml"
+      map_in: { fingerprint_item: fingerprints_item }
+      map_out: { dependency_graphs: dependency_graph_item }
+    reads: [fingerprints_item]
+    writes: [dependency_graphs]
+
+  - id: depgraph_report
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      template_with: { pick: [dependency_graphs] }
+      out_dir: "../../.harness"
+      filename: "dependency-graph.json"
+      format: json
+      into: dependency_graph_report
+    reads: [dependency_graphs]
+    writes: [dependency_graph_report]
+
+  # step 13 build stage (0029/D1): loop over the integrated repos and run the
+  # declarative per-ecosystem BUILD playbook (configs/playbooks/ecosystem-build/)
+  # at each install location — the same guarded, bounded, argv-list, exit-code-
+  # honest machinery as step 10's install (0026), pointed at compile/package
+  # commands instead of dependency installs. Placed per the record's literal
+  # 13/14 numbering: after the step-12 depgraph chain, before render. The
+  # LLM-detected integrated[].build-style evidence stays EVIDENCE — never
+  # executed (0026/A3 discipline; security rules §1/§2/§4). Mock → one
+  # deterministic per-repo stub, no fs/subprocess/network.
+  - id: build
+    uses: commands.buildRun
+    with:
+      integrated_from: integrated
+      clones_from: clone_results
+      fingerprints_from: fingerprints
+      preflight_from: registry_preflight
+      playbooks_dir: "../playbooks/ecosystem-build"
+      save_dir: "../../.harness/builds"
+      into: builds
+    reads: [integrated, clone_results, fingerprints, registry_preflight]
+    writes: [builds]
+
+  # step 14 build-snapshot stage (0029/D2, gated on 0029/A1): re-snapshot each
+  # clone AFTER the build, phase-tagged `build`, so snapshots/build/ sits
+  # alongside — and diffs pairwise against — step 9's snapshots/initial/.
+  # NOTE the tool's enumeration contract (0009/D4): `git ls-files` honors
+  # .gitignore (and the fs-walk fallback skips dist/build/target), so the
+  # initial→build diff surfaces TRACKED artifacts the build produced or touched
+  # (generated sources, lockfiles), not gitignored build output.
+  - id: build_snapshot
+    uses: commands.repoSnapshot
+    with:
+      clones_from: clone_results
+      out_dir: "../../.harness/snapshots"
+      name_suffix: "repo.json"
+      namespace: "build"
+      into: build_snapshots
+    reads: [clone_results]
+    writes: [build_snapshots]
+
+  # capability 1 (test) — the test stage. Runs the per-ecosystem TEST playbook
+  # (configs/playbooks/ecosystem-test/) at each integrated repo's install
+  # locations, AFTER build/build_snapshot (a test needs the built tree). Mirrors
+  # commands.buildRun; "if present" honored per ecosystem. Mock → per-repo stub.
+  - id: run_test
+    uses: commands.testRun
+    with:
+      integrated_from: integrated
+      clones_from: clone_results
+      fingerprints_from: fingerprints
+      preflight_from: registry_preflight
+      playbooks_dir: "../playbooks/ecosystem-test"
+      save_dir: "../../.harness/tests"
+      into: tests
+    reads: [integrated, clone_results, fingerprints, registry_preflight]
+    writes: [tests]
+
+  # capability 6 — validate. Cross-references remediations with install-verify,
+  # build, and test results and classifies each attempt into fixed / broken /
+  # blocked / skipped / bug. Pure + non-gating; never throws.
+  - id: validate
+    uses: commands.remediationValidate
+    with:
+      remediations_from: remediations
+      install_verifications_from: install_verifications
+      builds_from: builds
+      tests_from: tests
+      plans_from: plans
+      # 0032/D7: contract C1 — datasource recommended_version is a minimum-apply
+      # obligation; violations are explicit findings + decision lines.
+      dataset_from: dataset
+      decision_log: "../../.harness/decision.jsonl"
+      into: validations
+    reads: [remediations, install_verifications, builds, tests, plans, dataset]
+    writes: [validations]
+
+  # changelog tail stage (0032/D6): for every APPLIED remediation, collect the
+  # registry release range (from..to] + source/compare URLs and surface them in
+  # the reports. Mock → per-record stub; real → best-effort lookup, never gating.
+  - id: changelog
+    uses: commands.fetchChangelogs
+    with:
+      remediations_from: remediations
+      into: changelogs
+    reads: [remediations]
+    writes: [changelogs]
+
+  # capability 7 — remediation reports. One markdown report per repo plus an
+  # aggregate JSON, written under the session artifact root (../../.harness).
+  - id: remediation_report
+    uses: commands.remediationReport
+    with:
+      plans_from: plans
+      optimized_prompts_from: optimized_prompts
+      remediations_from: remediations
+      validations_from: validations
+      tests_from: tests
+      builds_from: builds
+      out_dir: "../../.harness"
+      into: remediation_summary
+    reads: [plans, optimized_prompts, remediations, validations, tests, builds]
+    writes: [remediation_summary]
+
+  - id: render
+    uses: commands.renderReport
+    with:
+      template_uses: template.jsonReport
+      # 0026/A1 + 0027/A1 + 0029/D1+D2: `installs`, `install_verifications`,
+      # `builds`, and `build_snapshots` join the pick AND the reads — platform
+      # rule 5, a node never picks a channel it didn't declare. Capabilities 4/6
+      # add `plans`, `optimized_prompts`, `tests`, and `validations`.
+      template_with: { pick: [dataset, clone_results, plans, optimized_prompts, remediations, snapshots, installs, install_verifications, dependency_graphs, builds, tests, build_snapshots, validations, changelogs] }
+      out_dir: "../../.runs/out"
+      filename: "repo-remediation.json"
+      format: json
+      into: report
+    reads: [dataset, clone_results, plans, optimized_prompts, remediations, snapshots, installs, install_verifications, dependency_graphs, builds, tests, build_snapshots, validations, changelogs]
+    writes: [report]
+
+  # capability 8 — the single HTML report. Reads every pipeline channel and
+  # renders one self-contained, escaped HTML page explaining the whole outcome.
+  # run-health-and-errors-log Epic 03: `service_health` joins the reads — the
+  # generator stamps the environment fact behind the report's banner from it.
+  - id: html_report
+    uses: commands.renderHtmlReport
+    with:
+      out_dir: "../../.runs/out"
+      filename: "repo-remediation.html"
+      into: report_html
+    reads: [service_health, dataset, clone_results, plans, optimized_prompts, remediations, validations, installs, install_verifications, builds, tests, dependency_graphs, snapshots, build_snapshots]
+    writes: [report_html]
+
+  # final CONTENT stage (step 18¾): the run's PRODUCT, lifted out of the
+  # disposable clone tree. Every artifact before this node DESCRIBES the change
+  # (remediations[] says a bump applied; the reports say it was `fixed`); the
+  # changed BYTES live only in <session>/repos/<slug>, which a resumed run may
+  # skip and a fresh session id never writes again. This node scans each clone
+  # with git and UNIONS that with the recorded applied remediations, then copies
+  # the COMPLETE changed files into <session>/final_applied_changes/<repo>/.
+  # Placed AFTER html_report and BEFORE errors so an export failure still
+  # reaches errors.logs (and so the reports it complements are already on disk).
+  # NOTE — as with the errors node, deliberately NO out_dir here: the path
+  # arrives via the outputStep/flow-plan render seam (OVERLAYS). A `../../`
+  # literal is exactly how 0043/0046 scattered artifacts into the vendor dir.
+  - id: export_changes
+    uses: commands.exportAppliedChanges
+    with:
+      clones_from: clone_results
+      remediations_from: remediations
+      validations_from: validations
+      changelogs_from: changelogs
+      fingerprints_from: fingerprints
+      plans_from: plans
+      into: final_applied_changes
+    reads: [clone_results, remediations, validations, changelogs, fingerprints, plans]
+    writes: [final_applied_changes]
+
+  # terminal errors stage (run-health-and-errors-log Epic 02): one atom, one
+  # mapping line, one node — LAST, after html_report, when every channel is
+  # populated. Consolidates every failure/skip into <session>/errors.logs,
+  # grouped by ROOT CAUSE, evidence-bearing, redacted, deterministic, and
+  # written on EVERY run (clean and mock included — absent means "the stage
+  # did not run", never "the run was clean"; 0051/A3 one stage later).
+  # NOTE there is deliberately NO out_dir here: the artifact is SESSION-rooted
+  # and the path arrives via the outputStep/flow-plan render seam (OVERLAYS) —
+  # a `../../` literal here is exactly how 0043/0046 scattered artifacts into
+  # the vendor directory. Do not "fix" this by adding an out_dir.
+  - id: errors
+    uses: commands.errorsConsolidate
+    with:
+      filename: "errors.logs"
+      into: errors_summary
+    reads: [service_health, clone_results, installs, install_verifications, builds, tests, validations, remediations]
+    writes: [errors_summary]
+
+edges:
+  # Epic 01 (run-health-and-errors-log): health is the entry — the environment
+  # is probed BEFORE the run pays for ten clones and ten installs.
+  - { from: health, to: ingest }
+  - { from: ingest, to: dataset_init }
+  # 0023/A2 — the repo-source lanes ingest the single array [{repo, repo_url}]:
+  # there is no spreadsheet, so there are no headers to select. They SKIP step 3's
+  # `select_headers` and proceed straight to step 4 (`collect_repos`). `dataset_init`
+  # still runs — it is the spine seeder every later stage reads, not a header step.
+  # Every other lane keeps the committed chain via the `default`.
+  - from: dataset_init
+    switch:
+      on: ingest_source
+      cases:
+        local_repo: collect_repos
+        remote_repo: collect_repos
+      default: select_headers
+  - { from: select_headers, to: collect_repos }
+  - { from: collect_repos, to: fan }
+  - { from: fan, fanout: { over: repos, to: clone_repo }, then: fingerprint }
+  - { from: fingerprint, to: fingerprint_report }
+  # 0065/D1: resolve dependency_scope + manifest_path against the clones BEFORE
+  # anything reads `dataset` for planning.
+  - { from: fingerprint_report, to: resolve_datasource }
+  - { from: resolve_datasource, to: integrate }
+  - { from: integrate, to: integrate_report }
+  # capabilities 4+5 (+ 0032/D5): integrate_report → plan → apply_rules →
+  # optimize → remediate → snapshot. The deterministic plan is stamped with
+  # policy verdicts + package-rules config BEFORE the (mutating) remediate
+  # stage executes it; snapshots then reflect post-bump state (0019/A3).
+  - { from: integrate_report, to: plan }
+  - { from: plan, to: apply_rules }
+  - { from: apply_rules, to: optimize }
+  - { from: optimize, to: remediate }
+  - { from: remediate, to: snapshot }
+  # step 10–11 (0026/A1 + 0027/A1, supersedes 0017/A1's snapshot → depgraph_fan):
+  # snapshot → install → install-verify → depgraph_fan — install runs AFTER
+  # snapshot (the clone-mutation reconciliation), install-verify sits BETWEEN
+  # install and the depgraph fan-out (it observes install's result and asserts a
+  # populated tree before step 12 inventories it; 0027/A1 re-points only this
+  # edge target, non-gating). Then dependency_graph (fan-out over fingerprints) →
+  # dependency_graph_report → render → END.
+  # 0063/A2: the once-per-run registry preflight sits between snapshot and
+  # install — probed before the first registry-touching step, published on
+  # `registry_preflight` for install/build/test to consume.
+  - { from: snapshot, to: preflight }
+  - { from: preflight, to: install }
+  - { from: install, to: install_verify }
+  - { from: install_verify, to: depgraph_fan }
+  - { from: depgraph_fan, fanout: { over: fingerprints, to: dependency_graph }, then: depgraph_report }
+  # steps 13–14 (0029/D1+D2, re-points 0017's depgraph_report → render): the
+  # build stage and its post-build re-snapshot slot between the depgraph chain
+  # and the final render, per the record's literal 13/14 numbering.
+  - { from: depgraph_report, to: build }
+  - { from: build, to: build_snapshot }
+  # capabilities 1(test) + 6 + 7 + 8 (+ 0032/D6): build_snapshot → run_test →
+  # validate → changelog → remediation_report → render (JSON) → html_report → END.
+  - { from: build_snapshot, to: run_test }
+  - { from: run_test, to: validate }
+  - { from: validate, to: changelog }
+  - { from: changelog, to: remediation_report }
+  - { from: remediation_report, to: render }
+  - { from: render, to: html_report }
+  # run-health-and-errors-log Epic 02 + step 18¾: the terminal edge re-points
+  # through the export stage and then the errors stage —
+  # html_report → export_changes → errors → END. `errors` stays TERMINAL (it is
+  # the run's verdict, and it must be able to report a failure of the export
+  # itself); `export_changes` is the last stage that produces CONTENT.
+  - { from: html_report, to: export_changes }
+  - { from: export_changes, to: errors }
+  - { from: errors, to: END }

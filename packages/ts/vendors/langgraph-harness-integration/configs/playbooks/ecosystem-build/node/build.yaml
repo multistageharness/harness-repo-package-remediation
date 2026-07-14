@@ -1,0 +1,15 @@
+# node ecosystem BUILD playbook (0029/D1). `npm run build --if-present` is the
+# guard against repos with no build script: npm exits 0 and says so instead of
+# failing on a missing script — a no-build package is a legitimate outcome, not
+# an error (degrade-never-guess). The mjs/ts toolchains share one recipe — the
+# anchor keeps them byte-identical (same convention as the install playbook).
+ecosystem: node
+toolchains:
+  mjs: &npm_build_steps
+    - tool: npm-run-build
+      argv: ["npm", "run", "build", "--if-present"]
+      guard: npm
+      artifact: npm-run-build.log
+      allowNonZero: true
+  ts: *npm_build_steps
+  default: *npm_build_steps

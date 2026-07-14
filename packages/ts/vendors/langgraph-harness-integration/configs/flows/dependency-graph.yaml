@@ -1,0 +1,151 @@
+# step 11 (langgraph-flow.md; change records 0017/D1 → 0018 → 0019) — the
+# `dependency_graph` SUB-LANGGRAPH. The parent repo-remediation.yaml fans out
+# over the step-6 fingerprints (one Send per repo) and embeds THIS flow as one
+# node via nodes.subgraph, seeding `fingerprint_item` per repo and harvesting
+# `dependency_graph_item`. Here a nodes.router reads the repo's detected
+# `dominantEcosystem` and an edges.switch "maps to the right node" — one
+# extractor lane per supported language group: Java (maven/gradle), python
+# (pip/poetry/uv, venv-provisioned), node (ts/mjs), docker, golang — with an
+# `other` default so an undetected / mock-stub fingerprint (dominantEcosystem:
+# null) still routes cleanly. Every lane is the same commands.depgraphExtract
+# atom parametrized by its ecosystem group; toolchain sub-detect + the 0018
+# command matrix live in src/ecosystem-registry.mjs. Under --mock (default):
+# pure state transforms, no fs/subprocess/LLM — byte-identical placeholder
+# stubs. On MOCK=false: guarded per-toolchain CLI analysis (argv-list, bounded)
+# with raw outputs saved under $DEPGRAPH_SAVE_DIR (0018/D2, + a .stderr.txt
+# sibling — 0025/D1); docker/other lanes stay placeholder. A non-zero exit is a
+# RECORDED outcome, never silence (0025/A1: status/failed on the result), and the
+# maven lane runs one `dependency:tree` per project manifest (0025/A2+A3).
+version: 100
+name: dependency-graph
+description: Per-repo dependency-graph sub-langgraph — route on detected ecosystem to a per-toolchain extractor lane (Java/python/node/docker/golang); real CLI analysis on MOCK=false, stubs under mock.
+
+runtime:
+  recursion_limit: 10
+  checkpointer: none
+  mock: ${MOCK:true}
+
+state:
+  # seeded by the parent's nodes.subgraph map_in — one { url, dir, fingerprint } entry
+  fingerprint_item:      { type: object, default: {} }
+  # routing token written by the router, read by the switch edge
+  eco_route:             { type: string, default: "" }
+  # commands.venvSetup result ({ venv, bin, … } | { venv: null, mocked }) — the
+  # python lane's deptry/pipdeptree come from this venv (0018/D1)
+  venv:                  { type: object, default: {} }
+  # harvested back by the parent's map_out (→ dependency_graphs, concat)
+  dependency_graph_item: { type: object, default: {} }
+
+entry: route_ecosystem
+
+nodes:
+  - id: route_ecosystem
+    uses: nodes.router
+    with:
+      # Branch at ecosystem-GROUP level on the fingerprint's dominantEcosystem
+      # (java-maven / java-gradle → java, node / typescript → node, go → golang,
+      # …); the extractor then sub-detects the exact toolchain. `'x' in <string>`
+      # is substring containment in the safe expr grammar. docker is
+      # infrastructure, never a dominantEcosystem, so its lane keys off ANY
+      # container signal (docker / docker-compose, disambiguated in the extractor)
+      # and sits LAST before the default — a code repo that merely ships a
+      # Dockerfile has already matched its language rule above and won't reach here.
+      rules:
+        - { when: "'java' in state.fingerprint_item.fingerprint.dominantEcosystem", token: java }
+        - { when: "'python' in state.fingerprint_item.fingerprint.dominantEcosystem", token: python }
+        - { when: "'typescript' in state.fingerprint_item.fingerprint.dominantEcosystem", token: node }
+        - { when: "'node' in state.fingerprint_item.fingerprint.dominantEcosystem", token: node }
+        - { when: "'go' in state.fingerprint_item.fingerprint.dominantEcosystem", token: golang }
+        - { when: "state.fingerprint_item.fingerprint.infrastructure.containers.length > 0", token: docker }
+      default: other
+      out: eco_route
+    reads: [fingerprint_item]
+    writes: [eco_route]
+
+  - id: extract_java
+    uses: commands.depgraphExtract
+    with:
+      ecosystem: java
+      fingerprint_from: fingerprint_item
+      save_dir: "${DEPGRAPH_SAVE_DIR:../../.harness/dependency-graphs}"
+      into: dependency_graph_item
+    reads: [fingerprint_item]
+    writes: [dependency_graph_item]
+
+  # 0018/D1 as amended by 0026/A4: provision the isolated python TOOLING venv
+  # BEFORE the python extractor lane — deptry/pipdeptree run from the venv,
+  # never the host interpreter. The venv is PER-REPO, inside the clone at
+  # `<clone>/.venv-deptry` (derived from this branch's fingerprint_item.dir),
+  # never the superseded run-global `<session>/.venv`: a shared tooling venv
+  # was safe only while nothing installed REPO dependencies anywhere — once
+  # step 10 provisions `<clone>/.venv`, sharing would poison every later
+  # repo's pipdeptree view. Deterministic no-op under mock.
+  - id: venv_python
+    uses: commands.venvSetup
+    with: { clone_from: fingerprint_item, venv_dirname: ".venv-deptry", into: venv }
+    reads: [fingerprint_item]
+    writes: [venv]
+
+  - id: extract_python
+    uses: commands.depgraphExtract
+    with:
+      ecosystem: python
+      fingerprint_from: fingerprint_item
+      venv_from: venv
+      save_dir: "${DEPGRAPH_SAVE_DIR:../../.harness/dependency-graphs}"
+      into: dependency_graph_item
+    reads: [fingerprint_item, venv]
+    writes: [dependency_graph_item]
+
+  - id: extract_node
+    uses: commands.depgraphExtract
+    with:
+      ecosystem: node
+      fingerprint_from: fingerprint_item
+      save_dir: "${DEPGRAPH_SAVE_DIR:../../.harness/dependency-graphs}"
+      into: dependency_graph_item
+    reads: [fingerprint_item]
+    writes: [dependency_graph_item]
+
+  - id: extract_docker
+    uses: commands.depgraphExtract
+    with: { ecosystem: docker, fingerprint_from: fingerprint_item, into: dependency_graph_item }
+    reads: [fingerprint_item]
+    writes: [dependency_graph_item]
+
+  - id: extract_golang
+    uses: commands.depgraphExtract
+    with:
+      ecosystem: golang
+      fingerprint_from: fingerprint_item
+      save_dir: "${DEPGRAPH_SAVE_DIR:../../.harness/dependency-graphs}"
+      into: dependency_graph_item
+    reads: [fingerprint_item]
+    writes: [dependency_graph_item]
+
+  - id: extract_other
+    uses: commands.depgraphExtract
+    with: { ecosystem: other, fingerprint_from: fingerprint_item, into: dependency_graph_item }
+    reads: [fingerprint_item]
+    writes: [dependency_graph_item]
+
+edges:
+  - from: route_ecosystem
+    switch:
+      on: eco_route
+      cases:
+        java: extract_java
+        python: venv_python
+        node: extract_node
+        docker: extract_docker
+        golang: extract_golang
+        other: extract_other
+      default: extract_other
+  # python lane runs through venv provisioning first (0018/D1)
+  - { from: venv_python, to: extract_python }
+  - { from: extract_java, to: END }
+  - { from: extract_python, to: END }
+  - { from: extract_node, to: END }
+  - { from: extract_docker, to: END }
+  - { from: extract_golang, to: END }
+  - { from: extract_other, to: END }
