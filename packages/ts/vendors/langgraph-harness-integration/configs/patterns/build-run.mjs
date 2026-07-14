@@ -189,6 +189,35 @@ export async function nodeToolchainMissing(cwd, cloneRoot) {
  * Validate one playbook step (or a `fallback:`) against the D2 hard
  * constraints. Loud errors — a malformed playbook must never half-run.
  */
+/**
+ * Does a step's guard pass? A plain `guard` string is a PATH probe (the tool's
+ * binary exists). A `guardArgv` is a probe COMMAND — the tool must be RUNNABLE:
+ * `python3 -c 'import build'` confirms the `build` module is importable by THAT
+ * interpreter, not merely that a `python3` binary is on PATH.
+ *
+ * Ported from the test playbook's identical guard (test-run.mjs, 0035/A2), which
+ * hardened pytest's interpreter selection for exactly this reason. The build lane
+ * never got it, and the omission was live: `guard: python3` selected whatever
+ * python3 led PATH — a Homebrew 3.14 with no `build` module — so the primary rung
+ * failed on EVERY python repo and the `python` fallback (an anaconda 3.12 that
+ * does have it) silently rescued each one. A permanently degraded lane, reported
+ * as a healthy one. The argv guard runs through the same argv-list runner (never a
+ * shell); the guard binary must still be on PATH first, and a non-zero or thrown
+ * probe fails closed.
+ */
+async function guardOk(step, { cwd, probe, runner, timeoutMs }) {
+  if (Array.isArray(step.guardArgv) && step.guardArgv.length > 0) {
+    if (!(await probe(step.guardArgv[0], cwd))) return false;
+    try {
+      const { exitCode } = await runner(step.guardArgv, { cwd, timeoutMs, allowNonZero: true });
+      return exitCode === 0;
+    } catch {
+      return false;
+    }
+  }
+  return probe(step.guard, cwd);
+}
+
 function validateStep(step, where) {
   if (!step || typeof step !== "object") throw new Error(`${where}: step must be a mapping`);
   if (typeof step.tool !== "string" || step.tool.length === 0) throw new Error(`${where}: 'tool' must be a non-empty string`);
@@ -200,6 +229,20 @@ function validateStep(step, where) {
     }
   }
   if (typeof step.guard !== "string" || step.guard.length === 0) throw new Error(`${where}: 'guard' (the probed CLI) is required`);
+  // An optional argv guard — a probe COMMAND (e.g. `python3 -c 'import build'`)
+  // confirming the tool is RUNNABLE by that interpreter, not merely that a binary
+  // is on PATH. Same argv-list hardening as `argv` (security rule §4: literal
+  // strings, never a shell). `guard` stays the required PATH pre-check on the
+  // guard binary. Mirrors test-run.mjs's validator (0035/A2).
+  if (step.guardArgv !== undefined) {
+    if (!Array.isArray(step.guardArgv) || step.guardArgv.length === 0) throw new Error(`${where}: 'guardArgv' must be a non-empty list when present`);
+    for (const token of step.guardArgv) {
+      if (typeof token !== "string") throw new Error(`${where}: guardArgv tokens must be literal strings`);
+      if (FORBIDDEN_TOKEN_CHARS.test(token)) {
+        throw new Error(`${where}: guardArgv token ${JSON.stringify(token)} carries shell metacharacters — argv lists never reach a shell (security rule §4)`);
+      }
+    }
+  }
   if (typeof step.artifact !== "string" || step.artifact.length === 0) throw new Error(`${where}: 'artifact' is required`);
   if (step.allowNonZero !== true) throw new Error(`${where}: 'allowNonZero: true' is required on every step — the exit code is a RECORDED outcome (0025/A1)`);
   if (step.fallback !== undefined) validateStep(step.fallback, `${where}.fallback`);
@@ -413,8 +456,16 @@ export function _buildRunWith({ runner = runArgv, probe = defaultProbe } = {}) {
                 skips.push(dead);
                 continue;
               }
-              if (!(await probe(candidate.guard, cwd))) {
-                skips.push({ tool: candidate.tool, location: location.dir, skipped: candidate.guard, reason: "not on PATH" });
+              if (!(await guardOk(candidate, { cwd, probe, runner, timeoutMs }))) {
+                // A `guardArgv` rung that fails its probe is not "missing from PATH"
+                // — the binary is there, it just cannot run the tool. Say which.
+                const argvGuarded = Array.isArray(candidate.guardArgv) && candidate.guardArgv.length > 0;
+                skips.push({
+                  tool: candidate.tool,
+                  location: location.dir,
+                  skipped: argvGuarded ? candidate.guardArgv.join(" ") : candidate.guard,
+                  reason: argvGuarded ? "guard command failed (tool not runnable by this interpreter)" : "not on PATH",
+                });
                 continue;
               }
               chosen = candidate;
@@ -436,7 +487,7 @@ export function _buildRunWith({ runner = runArgv, probe = defaultProbe } = {}) {
               const unrunnable = registrySkip(spec.fallback, location);
               if (unrunnable) {
                 steps.push(unrunnable);
-              } else if (await probe(spec.fallback.guard, cwd)) {
+              } else if (await guardOk(spec.fallback, { cwd, probe, runner, timeoutMs })) {
                 // 0066/D1: the rescue writes to a `.fallback`-suffixed artifact
                 // when the fallback rung declares the primary's own artifact
                 // name (both python-build rungs say `python-build.log`) — else

@@ -2,12 +2,24 @@
 # repo's tests; a repo with no tests exits non-zero (exit code 5 = no tests
 # collected) and is RECORDED (allowNonZero) — degrade, never guess. The poetry /
 # uv lanes run pytest through their runners; steps run with cwd at the location.
+#
+# The primary rung runs pytest through the LOCATION'S OWN `.venv` — the venv the
+# install playbook provisioned and installed the repo into (`.venv/bin/pip`).
+# It previously ran a bare `pytest` off PATH, which resolves to whatever
+# interpreter leads PATH (an anaconda/system python) — one that cannot see
+# anything installed in `.venv`. For a src-layout package that means the suite
+# ran against an interpreter the package under test was never installed into, so
+# `import <pkg>` raised ModuleNotFoundError and the failure was attributed to the
+# dependency edit. Tests must run in the environment install built, or they are
+# not testing the edit at all. The PATH pytest survives only as the fallback, for
+# locations with no `.venv`.
 ecosystem: python
 toolchains:
   pip: &py_test_steps
     - tool: pytest
-      argv: ["pytest", "-q"]
-      guard: pytest
+      argv: [".venv/bin/python", "-m", "pytest", "-q"]
+      guard: ".venv/bin/python"
+      guardArgv: [".venv/bin/python", "-c", "import pytest"]
       artifact: pytest.log
       allowNonZero: true
       # 0035/A1: pytest exit 5 = "no tests collected" — a test-less repo is a

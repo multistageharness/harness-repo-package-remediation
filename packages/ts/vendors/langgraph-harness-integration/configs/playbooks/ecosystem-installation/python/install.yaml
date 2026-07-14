@@ -37,6 +37,34 @@ toolchains:
         guard: ".venv/bin/pip"
         artifact: pip-install.log
         allowNonZero: true
+    # Install the PROJECT ITSELF, not just its requirements. Without this the
+    # `.venv` holds the repo's dependencies but not the repo, so a src-layout
+    # package (`src/<pkg>/`, the layout hatchling's `packages = ["src/…"]` implies)
+    # is never importable and every `import <pkg>` in the suite raises
+    # ModuleNotFoundError — a failure that looks like the dependency edit broke
+    # the package when in fact the package was never installed. The target repos'
+    # own CI_SETUP.sh does `pip install -e .`; the harness has to match it.
+    # Gated on pyproject.toml: a requirements-only repo with no packaging metadata
+    # is bypassed (recorded skip), never failed.
+    - tool: pip-install-self
+      argv: [".venv/bin/pip", "install", "-e", "."]
+      guard: ".venv/bin/pip"
+      requires_file: "pyproject.toml"
+      artifact: pip-install-self.log
+      allowNonZero: true
+    # The test runner has to live in the venv the tests RUN in. The test playbook
+    # invokes `.venv/bin/python -m pytest`, so a pytest that exists only on the
+    # ambient PATH is a pytest the suite cannot reach — its guard would fail and
+    # the lane would fall back to the PATH interpreter, which is exactly the
+    # wrong-interpreter bug this pair of changes closes. The target repos' own
+    # CI_SETUP.sh does `pip install pytest` for the same reason; the harness has
+    # to match it. Like every other pip rung this is registry-gated, so a dead
+    # index makes it a recorded skip rather than a failure.
+    - tool: pip-install-pytest
+      argv: [".venv/bin/pip", "install", "pytest"]
+      guard: ".venv/bin/pip"
+      artifact: pip-install-pytest.log
+      allowNonZero: true
   poetry:
     - tool: poetry-install
       argv: ["poetry", "install", "--no-interaction"]

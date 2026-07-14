@@ -173,7 +173,7 @@ nodes:
   uses: "commands.gitCloneClassified"
   with:
     url_from: "repos_item"
-    workspace: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/repos"
+    workspace: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/repos"
     on_exist: "skip"
     max_attempts: 3
     into: "clone_results"
@@ -192,7 +192,7 @@ nodes:
     template_uses: "template.jsonReport"
     template_with:
       pick: ["fingerprints"]
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1"
     filename: "fingerprints.json"
     format: "json"
     into: "fingerprints_report"
@@ -204,7 +204,7 @@ nodes:
     dataset_from: "dataset"
     clones_from: "clone_results"
     into: "dataset"
-    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/decision.jsonl"
   reads: ["dataset", "clone_results"]
   writes: ["dataset"]
 - id: "integrate"
@@ -220,7 +220,7 @@ nodes:
     template_uses: "template.jsonReport"
     template_with:
       pick: ["integrated"]
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1"
     filename: "integrated.json"
     format: "json"
     into: "integrated_report"
@@ -240,7 +240,7 @@ nodes:
     plans_from: "plans"
     fingerprints_from: "fingerprints"
     policy_path: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/policy/remediation-policy.yaml"
-    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/decision.jsonl"
     into: "plans_ruled"
   reads: ["plans", "fingerprints"]
   writes: ["plans_ruled"]
@@ -258,7 +258,7 @@ nodes:
     dataset_from: "dataset"
     policy_path: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/policy/remediation-policy.yaml"
     plans_from: "plans_ruled"
-    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/decision.jsonl"
     into: "remediations"
   reads: ["fingerprints", "dataset", "plans_ruled"]
   writes: ["remediations"]
@@ -266,7 +266,7 @@ nodes:
   uses: "commands.repoSnapshot"
   with:
     clones_from: "clone_results"
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/snapshots"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/snapshots"
     name_suffix: "repo.json"
     namespace: "initial"
     into: "snapshots"
@@ -287,7 +287,7 @@ nodes:
     fingerprints_from: "fingerprints"
     preflight_from: "registry_preflight"
     playbooks_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/playbooks/ecosystem-installation"
-    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/installs"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/installs"
     into: "installs"
     concurrency: 4
     fail_fast_after: 3
@@ -300,7 +300,7 @@ nodes:
   with:
     installs_from: "installs"
     clones_from: "clone_results"
-    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/installs"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/installs"
     into: "install_verifications"
   reads: ["installs", "clone_results"]
   writes: ["install_verifications"]
@@ -325,7 +325,7 @@ nodes:
     template_uses: "template.jsonReport"
     template_with:
       pick: ["dependency_graphs"]
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1"
     filename: "dependency-graph.json"
     format: "json"
     into: "dependency_graph_report"
@@ -339,7 +339,7 @@ nodes:
     fingerprints_from: "fingerprints"
     preflight_from: "registry_preflight"
     playbooks_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/vendors/langgraph-harness-integration/configs/playbooks/ecosystem-build"
-    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/builds"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/builds"
     into: "builds"
   reads: ["integrated", "clone_results", "fingerprints", "registry_preflight"]
   writes: ["builds"]
@@ -347,7 +347,7 @@ nodes:
   uses: "commands.repoSnapshot"
   with:
     clones_from: "clone_results"
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/snapshots"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/snapshots"
     name_suffix: "repo.json"
     namespace: "build"
     into: "build_snapshots"
@@ -361,7 +361,7 @@ nodes:
     fingerprints_from: "fingerprints"
     preflight_from: "registry_preflight"
     playbooks_dir: "../../configs/playbooks/ecosystem-test"
-    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/tests"
+    save_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/tests"
     into: "tests"
   reads: ["integrated", "clone_results", "fingerprints", "registry_preflight"]
   writes: ["tests"]
@@ -374,7 +374,7 @@ nodes:
     tests_from: "tests"
     plans_from: "plans"
     dataset_from: "dataset"
-    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness/decision.jsonl"
+    decision_log: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness/decision.jsonl"
     into: "validations"
   reads: ["remediations", "install_verifications", "builds", "tests", "plans", "dataset"]
   writes: ["validations"]
@@ -394,7 +394,7 @@ nodes:
     validations_from: "validations"
     tests_from: "tests"
     builds_from: "builds"
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/langgraph-harness-integration/.harness"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/langgraph-harness-integration/.harness"
     into: "remediation_summary"
   reads: ["plans", "optimized_prompts", "remediations", "validations", "tests", "builds"]
   writes: ["remediation_summary"]
@@ -404,7 +404,7 @@ nodes:
     template_uses: "template.jsonReport"
     template_with:
       pick: ["dataset", "clone_results", "plans", "optimized_prompts", "remediations", "snapshots", "installs", "install_verifications", "dependency_graphs", "builds", "tests", "build_snapshots", "validations", "changelogs"]
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1"
     filename: "harness-ingest-classify.json"
     format: "json"
     into: "report"
@@ -413,7 +413,7 @@ nodes:
 - id: "html_report"
   uses: "commands.renderHtmlReport"
   with:
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1"
     filename: "repo-remediation.html"
     into: "report_html"
   reads: ["service_health", "dataset", "clone_results", "plans", "optimized_prompts", "remediations", "validations", "installs", "install_verifications", "builds", "tests", "dependency_graphs", "snapshots", "build_snapshots"]
@@ -428,7 +428,7 @@ nodes:
     fingerprints_from: "fingerprints"
     plans_from: "plans"
     into: "final_applied_changes"
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c/final_applied_changes"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1/final_applied_changes"
   reads: ["clone_results", "remediations", "validations", "changelogs", "fingerprints", "plans"]
   writes: ["final_applied_changes"]
 - id: "errors"
@@ -436,7 +436,7 @@ nodes:
   with:
     filename: "errors.logs"
     into: "errors_summary"
-    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/51eedaa6-5915-4806-9356-79b04a729a7c"
+    out_dir: "/Users/Shared/multistageharness/harness-repo-package-remediation/packages/ts/.harness/45d42fae-f3d7-424e-bd10-a515ccf114a1"
   reads: ["service_health", "clone_results", "installs", "install_verifications", "builds", "tests", "validations", "remediations"]
   writes: ["errors_summary"]
 edges:

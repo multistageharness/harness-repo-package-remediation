@@ -21,16 +21,25 @@
  * is the same "the lane degrades, never fails" contract already honored for a
  * missing `python3` or a missing clone dir.
  *
- * Venv topology (change record 0026/A4, supersedes 0018/D1's run-global
- * `<session>/.venv`): the tooling venv is PER-REPO and lives INSIDE the clone
- * at `<clone>/.venv-deptry`, derived from the branch's `clone_from` entry
- * (`fingerprint_item.dir`). It is tooling-only — the repo's own dependencies
- * land in the sibling `<clone>/.venv` provisioned by the step-10 install
- * playbook — which is exactly what keeps `pipdeptree`'s view of the install
- * env meaningful and `deptry`/`pipdeptree` out of the analyzed closure. The
- * legacy `venv_path` param remains for a run-global tooling venv when no
- * `clone_from` is wired. Both venvs dirty the clone — safe ONLY because
- * install and step 11 run after `snapshot` (0026/A1 ordering).
+ * Venv topology (revises 0026/A4, which supersedes 0018/D1's run-global
+ * `<session>/.venv`): the tooling venv is PER-REPO and lives OUTSIDE the clone
+ * at `<venv_root>/<clone-basename>/.venv-deptry`, keyed off the branch's
+ * `clone_from` entry (`fingerprint_item.dir`). It is tooling-only — the repo's
+ * own dependencies land in `<clone>/.venv`, provisioned by the step-10 install
+ * playbook — which is what keeps `pipdeptree`'s view of the install env
+ * meaningful and `deptry`/`pipdeptree` out of the analyzed closure. The legacy
+ * `venv_path` param remains for a run-global tooling venv when no `clone_from`
+ * is wired.
+ *
+ * 0026/A4 placed this venv IN the clone and argued it was safe because install
+ * and step 11 run after `snapshot` (0026/A1 ordering). That covered the snapshot
+ * but not the BUILD, which also runs after and packages the tree: a python sdist
+ * includes whatever the target repo's .gitignore does not exclude, so a repo
+ * ignoring `.venv/` but not `.venv-deptry/` tarred the whole tooling venv into
+ * its own sdist and the build died extracting an absolute `bin/python3.x` symlink
+ * back out (tarfile.AbsoluteLinkError). Hence: the harness does not write into a
+ * tree it is going to build. Only the install venv (`.venv`, conventionally
+ * ignored, and now bypassed by `build --wheel`) still lands in the clone.
  *
  * Under `--mock` (default) it is a deterministic no-op returning
  * `{ venv: null, mocked: true }` — no fs write, no subprocess, no network —
@@ -50,7 +59,7 @@
  */
 
 import { access } from "node:fs/promises";
-import { delimiter, isAbsolute, join, resolve, sep } from "node:path";
+import { basename, delimiter, isAbsolute, join, resolve, sep } from "node:path";
 
 import { runArgv } from "../../src/sdk.mjs";
 
@@ -63,11 +72,17 @@ export const meta = {
     required: ["into"],
     properties: {
       // 0026/A4: channel holding the branch's fingerprint entry ({ url, dir,
-      // … }) — the tooling venv is derived PER-REPO as `<dir>/<venv_dirname>`.
+      // … }) — the tooling venv is derived PER-REPO, now as
+      // `<venv_root>/<basename(dir)>/<venv_dirname>` (outside the clone).
       clone_from: { type: "string" },
-      // The in-clone tooling venv directory name. `.venv-deptry` is a
-      // NON-DEFAULT name for deptry's exclude list — the step-11 deptry argv
-      // carries an explicit `--extend-exclude` for it (0026/A4 open item).
+      // Root the per-repo tooling venvs are provisioned under; resolved against
+      // the flow dir when relative. Kept OUT of the clone so the tree the build
+      // stage packages stays clean — see the topology note in the header.
+      venv_root: { type: "string" },
+      // The tooling venv's leaf directory name. `.venv-deptry` is a NON-DEFAULT
+      // name for deptry's exclude list; the step-11 deptry argv still carries an
+      // explicit `--extend-exclude` for it, which is now belt-and-braces (the
+      // venv no longer sits in the scanned tree) and costs nothing.
       venv_dirname: { type: "string" },
       // Legacy run-global path ($VENV_PATH) — used only when `clone_from` is
       // not wired; resolved against the flow dir; default under .harness/.
@@ -115,9 +130,27 @@ export function _venvSetupWith({ runner = runArgv, probe = defaultProbe } = {}) 
         return { [params.into]: { venv: null, mocked: true } };
       }
 
-      // 0026/A4: per-repo tooling venv INSIDE the clone. A branch whose clone
-      // failed (no dir on disk) degrades to a recorded skip — the extractor
-      // lane records its own clone-failed skip right after.
+      // Per-repo tooling venv, provisioned OUTSIDE the clone (revises 0026/A4,
+      // which placed it at `<clone>/.venv-deptry`). A branch whose clone failed
+      // (no dir on disk) degrades to a recorded skip — the extractor lane records
+      // its own clone-failed skip right after.
+      //
+      // Why it moved: an in-clone venv dirties the very tree the build stage later
+      // packages. 0026/A4 reasoned this through for SNAPSHOT safety (install and
+      // step 11 run after `snapshot`) but the build stage also runs after, and a
+      // python backend's sdist includes whatever the target repo's .gitignore does
+      // not exclude. A repo ignoring `.venv/` but not `.venv-deptry/` swept the
+      // entire tooling venv into its tarball — 653 files, 4.2MB, including an
+      // absolute symlink `bin/python3.14 -> /opt/homebrew/…` that makes the build
+      // fail while extracting its OWN sdist (tarfile.AbsoluteLinkError, PEP 706
+      // data filter). The harness must not depend on each target repo ignoring a
+      // directory named after a harness tool; it should not be writing into the
+      // tree it is about to build at all.
+      //
+      // Nothing required it to be in-clone: deptry takes the clone as an argv scan
+      // target (see depgraphCommands in src/ecosystem-registry.mjs), so it scans
+      // the clone perfectly well from outside it. Keyed by clone basename to keep
+      // the per-repo isolation 0026/A4 bought (branches never contend on a path).
       let venvPath;
       if (params.clone_from) {
         const entry = state?.[params.clone_from] ?? {};
@@ -125,7 +158,9 @@ export function _venvSetupWith({ runner = runArgv, probe = defaultProbe } = {}) 
         if (!dir || !(await exists(dir))) {
           return { [params.into]: { venv: null, skipped: "no-clone-dir" } };
         }
-        venvPath = resolve(dir, params.venv_dirname ?? ".venv-deptry");
+        const rootRel = params.venv_root ?? "../../.harness/venvs";
+        const root = isAbsolute(rootRel) ? rootRel : resolve(ctx.options.baseDir, rootRel);
+        venvPath = resolve(root, basename(dir), params.venv_dirname ?? ".venv-deptry");
       } else {
         const venvRel = params.venv_path ?? "../../.harness/.venv";
         venvPath = isAbsolute(venvRel) ? venvRel : resolve(ctx.options.baseDir, venvRel);

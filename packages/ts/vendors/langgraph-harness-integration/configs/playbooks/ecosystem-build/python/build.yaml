@@ -1,20 +1,37 @@
-# python ecosystem BUILD playbook (0029/D1). `python -m build` produces
-# sdist/wheel into dist/; a repo without packaging metadata (no pyproject.toml
+# python ecosystem BUILD playbook (0029/D1). `python -m build --wheel` produces
+# a wheel into dist/; a repo without packaging metadata (no pyproject.toml
 # / setup.py) or without the `build` package installed exits non-zero and is
 # RECORDED (allowNonZero) — degrade, never guess. The uv/poetry lanes use their
 # native build commands. Steps run with cwd at the install location.
+#
+# `--wheel` is load-bearing, not a speed tweak. Bare `python -m build` builds an
+# sdist and then builds the wheel by RE-EXTRACTING that sdist. The sdist carries
+# whatever the backend does not exclude, so any file the target repo's .gitignore
+# misses (a tooling venv, a stray symlink) is tarred up — and an absolute symlink
+# like `.venv-deptry/bin/python3.14 -> /opt/homebrew/...` makes the extraction
+# fail outright (tarfile.AbsoluteLinkError, PEP 706 data filter, python>=3.12).
+# The build stage must not depend on each target repo's ignore hygiene: building
+# the wheel straight from the source tree skips the tarball round-trip entirely.
 ecosystem: python
 toolchains:
   pip: &py_build_steps
     - tool: python-build
-      argv: ["python3", "-m", "build"]
+      argv: ["python3", "-m", "build", "--wheel"]
       guard: python3
+      # Runnability probe, not a bare PATH check — same hardening the test
+      # playbook's pytest rung already carries (0035/A2). `guard: python3` alone
+      # selects whatever python3 leads PATH (e.g. a Homebrew 3.14 with no `build`
+      # module), so the primary rung failed on EVERY python repo and the fallback
+      # interpreter silently rescued it — a permanently degraded lane reported as
+      # a healthy one. Probing `import build` makes selection honest.
+      guardArgv: ["python3", "-c", "import build"]
       artifact: python-build.log
       allowNonZero: true
       fallback:
         tool: python-build
-        argv: ["python", "-m", "build"]
+        argv: ["python", "-m", "build", "--wheel"]
         guard: python
+        guardArgv: ["python", "-c", "import build"]
         artifact: python-build.log
         allowNonZero: true
   poetry:
